@@ -1,0 +1,625 @@
+import { useState, useEffect, useRef } from "react";
+import { Send, BookOpen, MessageSquare, CheckCircle, Mic, MicOff, Volume2, Star, Flame, Save } from "lucide-react";
+
+const IDIOMAS = {
+  ingles:    { nombre: "Inglés",    flag: "🇺🇸", lang: "en-US" },
+  italiano:  { nombre: "Italiano",  flag: "🇮🇹", lang: "it-IT" },
+  frances:   { nombre: "Francés",   flag: "🇫🇷", lang: "fr-FR" },
+  aleman:    { nombre: "Alemán",    flag: "🇩🇪", lang: "de-DE" },
+  portugues: { nombre: "Portugués", flag: "🇵🇹", lang: "pt-PT" },
+  japones:   { nombre: "Japonés",   flag: "🇯🇵", lang: "ja-JP" },
+  chino:     { nombre: "Chino",     flag: "🇨🇳", lang: "zh-CN" },
+  arabe:     { nombre: "Árabe",     flag: "🇸🇦", lang: "ar-SA" },
+  catalan:   { nombre: "Catalán",   flag: "🏴",  lang: "ca-ES" },
+};
+
+const FRASES_INICIO = {
+  ingles:    ["Hi! How are you?", "¿Cómo se dice 'disculpe'?", "Quiero practicar una entrevista", "Enséñame vocabulario de viajes"],
+  italiano:  ["Ciao! Come stai?", "¿Cómo se dice 'gracias'?", "Quiero pedir comida en un restaurante", "Enséñame a presentarme"],
+  frances:   ["Bonjour! Comment ça va?", "¿Cómo se dice 'por favor'?", "Quiero practicar el acento", "Enséñame saludos formales"],
+  aleman:    ["Hallo! Wie geht's?", "¿Cómo se dice 'disculpa'?", "Quiero aprender números", "Enséñame a pedir en un café"],
+  portugues: ["Olá! Tudo bem?", "¿Cómo se dice 'gracias'?", "Quiero practicar para viajar a Brasil", "Enséñame expresiones cotidianas"],
+  japones:   ["こんにちは！", "¿Cómo se escribe 'gracias'?", "Quiero aprender Hiragana", "Enséñame a presentarme en japonés"],
+  chino:     ["你好！", "¿Cómo se dice 'gracias' en chino?", "Quiero aprender los tonos", "Enséñame números del 1 al 10"],
+  arabe:     ["مرحبا!", "¿Cómo se escribe el alfabeto?", "Quiero aprender saludos básicos", "Enséñame a presentarme"],
+  catalan:   ["Hola! Com estàs?", "¿Cómo se dice 'por favor'?", "Quiero practicar conversación básica", "Enséñame expresiones catalanas"],
+};
+
+const METAS_BASE = [
+  { id: 1,  texto: "Dominar saludos y presentaciones",   pts: 100 },
+  { id: 2,  texto: "Verbos en presente simple",          pts: 150 },
+  { id: 3,  texto: "Vocabulario de trabajo y oficina",   pts: 120 },
+  { id: 4,  texto: "Hacer preguntas correctamente",      pts: 130 },
+  { id: 5,  texto: "Hablar sobre rutinas diarias",       pts: 110 },
+  { id: 6,  texto: "Expresar gustos y preferencias",     pts: 120 },
+  { id: 7,  texto: "Tiempo pasado",                      pts: 200 },
+  { id: 8,  texto: "Vocabulario de viajes y turismo",    pts: 130 },
+  { id: 9,  texto: "Expresiones idiomáticas comunes",    pts: 180 },
+  { id: 10, texto: "Pronunciación de sonidos difíciles", pts: 160 },
+  { id: 11, texto: "Idioma para situaciones sociales",   pts: 140 },
+  { id: 12, texto: "Conectores y fluidez al hablar",     pts: 170 },
+];
+
+const RANGOS = [
+  { nombre: "Novato",      min: 0,    max: 299,      color: "#6b7280", emoji: "🥚" },
+  { nombre: "Aprendiz",   min: 300,  max: 699,      color: "#10b981", emoji: "🌱" },
+  { nombre: "Estudiante", min: 700,  max: 1299,     color: "#3b82f6", emoji: "📘" },
+  { nombre: "Practicante",min: 1300, max: 2099,     color: "#8b5cf6", emoji: "⚡" },
+  { nombre: "Experto",    min: 2100, max: 3199,     color: "#f59e0b", emoji: "🌟" },
+  { nombre: "Maestro",    min: 3200, max: Infinity, color: "#ef4444", emoji: "👑" },
+];
+
+const LOGROS = [
+  { id: "primera_meta",   emoji: "🎯", nombre: "Primera meta",     desc: "Completaste tu primera meta",        cond: s => s.metasOk >= 1 },
+  { id: "tres_metas",     emoji: "🏅", nombre: "Dedicado",         desc: "Completaste 3 metas",                cond: s => s.metasOk >= 3 },
+  { id: "seis_metas",     emoji: "🏆", nombre: "Imparable",        desc: "Completaste 6 metas",                cond: s => s.metasOk >= 6 },
+  { id: "todas_metas",    emoji: "👑", nombre: "Maestro completo", desc: "Completaste todas las metas",        cond: s => s.metasOk >= 12 },
+  { id: "vocab_10",       emoji: "📖", nombre: "Curioso",          desc: "Aprendiste 10 palabras nuevas",      cond: s => s.vocab >= 10 },
+  { id: "vocab_30",       emoji: "📚", nombre: "Lector voraz",     desc: "Aprendiste 30 palabras nuevas",      cond: s => s.vocab >= 30 },
+  { id: "pts_300",        emoji: "⭐", nombre: "Acumulador",       desc: "Alcanzaste 300 puntos",              cond: s => s.puntos >= 300 },
+  { id: "pts_1000",       emoji: "🌟", nombre: "Mil puntos",       desc: "Alcanzaste 1000 puntos",             cond: s => s.puntos >= 1000 },
+  { id: "racha_5",        emoji: "🔥", nombre: "En llamas",        desc: "5 respuestas correctas seguidas",   cond: s => s.racha >= 5 },
+  { id: "racha_10",       emoji: "💥", nombre: "Imparable",        desc: "10 respuestas correctas seguidas",  cond: s => s.racha >= 10 },
+];
+
+const getRango = pts => RANGOS.find(r => pts >= r.min && pts <= r.max) || RANGOS[0];
+const getNextRango = pts => { const i = RANGOS.findIndex(r => pts >= r.min && pts <= r.max); return RANGOS[i + 1] || null; };
+
+const estadoInicial = () => ({
+  puntos: 0, totalMsg: 0, racha: 0, vocab: [],
+  metas: METAS_BASE.map(m => ({ ...m, completada: false })),
+  logros: [], mensajes: [],
+  ultimosMensajes: [], // para detectar repeticiones
+});
+
+// Detecta si un mensaje es muy similar a los últimos (anti-spam)
+const esMensajeRepetido = (texto, historial = []) => {
+  const norm = t => t.toLowerCase().trim().replace(/\s+/g, " ");
+  const textoNorm = norm(texto);
+  return historial.slice(-5).some(m => {
+    if (m.de !== "usuario") return false;
+    const mNorm = norm(m.texto);
+    if (mNorm === textoNorm) return true;
+    // similaridad básica: si comparten más del 80% de palabras
+    const palabrasA = new Set(textoNorm.split(" "));
+    const palabrasB = new Set(mNorm.split(" "));
+    const comunes = [...palabrasA].filter(p => palabrasB.has(p)).length;
+    const similitud = comunes / Math.max(palabrasA.size, palabrasB.size);
+    return similitud > 0.8;
+  });
+};
+
+function Celebracion({ texto, puntos, onDone }) {
+  useEffect(() => { const t = setTimeout(onDone, 2200); return () => clearTimeout(t); }, []);
+  return (
+    <div className="fixed inset-0 pointer-events-none flex items-center justify-center z-50">
+      <div className="text-center">
+        <div className="text-5xl mb-2">🎉</div>
+        <div className="text-white font-bold text-lg px-6 py-3 rounded-2xl shadow-2xl"
+          style={{ background: "linear-gradient(135deg, #4f46e5, #7c3aed)" }}>{texto}</div>
+        {puntos > 0 && <div className="mt-2 text-yellow-400 font-bold text-lg">+{puntos} XP ✨</div>}
+      </div>
+    </div>
+  );
+}
+
+function BarraXP({ puntos }) {
+  const rango = getRango(puntos);
+  const next = getNextRango(puntos);
+  const pct = next ? Math.round(((puntos - rango.min) / (next.min - rango.min)) * 100) : 100;
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-1">
+        <span className="text-xs font-bold" style={{ color: rango.color }}>{rango.emoji} {rango.nombre}</span>
+        {next && <span className="text-xs text-gray-400">{puntos} / {next.min} XP</span>}
+      </div>
+      <div className="w-full rounded-full h-2" style={{ background: "#2d3148" }}>
+        <div className="h-2 rounded-full transition-all duration-700"
+          style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${rango.color}, #818cf8)` }} />
+      </div>
+    </div>
+  );
+}
+
+export default function TutorIdiomas() {
+  const [idioma, setIdioma] = useState("ingles");
+  const [estadosPorIdioma, setEstadosPorIdioma] = useState(null);
+  const [msgActual, setMsgActual] = useState("");
+  const [cargando, setCargando] = useState(false);
+  const [modoLeccion, setModoLeccion] = useState(false);
+  const [feedback, setFeedback] = useState(null);
+  const [escuchando, setEscuchando] = useState(false);
+  const [hayVoz, setHayVoz] = useState(false);
+  const [hablandoId, setHablandoId] = useState(null);
+  const [celebracion, setCelebracion] = useState(null);
+  const [tab, setTab] = useState("metas");
+  const [guardando, setGuardando] = useState(false);
+  const [ultimoGuardado, setUltimoGuardado] = useState(null);
+  const [cargandoDatos, setCargandoDatos] = useState(true);
+  const [storageOk, setStorageOk] = useState(false);
+  const [avisoRepetido, setAvisoRepetido] = useState(false);
+  const endRef = useRef(null);
+  const recRef = useRef(null);
+  const saveTimerRef = useRef(null);
+
+  // Cargar progreso
+  useEffect(() => {
+    const cargar = async () => {
+      try {
+        let datos = null;
+        // Intentar cargar desde window.storage (Claude)
+        if (window.storage) {
+          try {
+            const res = await window.storage.get("progreso_idiomas_v2");
+            if (res && res.value) {
+              datos = JSON.parse(res.value);
+              setStorageOk(true);
+            }
+          } catch (e) { /* key no existe todavía, normal */ }
+        }
+        const completo = Object.fromEntries(
+          Object.keys(IDIOMAS).map(k => [k,
+            datos?.[k] ? {
+              ...estadoInicial(),
+              puntos:   datos[k].puntos   ?? 0,
+              totalMsg: datos[k].totalMsg ?? 0,
+              racha:    datos[k].racha    ?? 0,
+              vocab:    datos[k].vocab    ?? [],
+              metas:    datos[k].metas    ?? estadoInicial().metas,
+              logros:   datos[k].logros   ?? [],
+              mensajes: [],
+            } : estadoInicial()
+          ])
+        );
+        setEstadosPorIdioma(completo);
+      } catch (e) {
+        console.error("Error cargando:", e);
+        setEstadosPorIdioma(Object.fromEntries(Object.keys(IDIOMAS).map(k => [k, estadoInicial()])));
+      } finally {
+        setCargandoDatos(false);
+      }
+    };
+    cargar();
+  }, []);
+
+  // Guardar progreso
+  useEffect(() => {
+    if (!estadosPorIdioma) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      if (!window.storage) return;
+      setGuardando(true);
+      try {
+        const paraGuardar = Object.fromEntries(
+          Object.keys(IDIOMAS).map(k => [k, {
+            puntos:   estadosPorIdioma[k].puntos,
+            totalMsg: estadosPorIdioma[k].totalMsg,
+            racha:    estadosPorIdioma[k].racha,
+            vocab:    estadosPorIdioma[k].vocab,
+            metas:    estadosPorIdioma[k].metas,
+            logros:   estadosPorIdioma[k].logros,
+          }])
+        );
+        const res = await window.storage.set("progreso_idiomas_v2", JSON.stringify(paraGuardar));
+        if (res) { setUltimoGuardado(new Date()); setStorageOk(true); }
+      } catch (e) { console.error("Error guardando:", e); }
+      finally { setGuardando(false); }
+    }, 1500);
+    return () => clearTimeout(saveTimerRef.current);
+  }, [estadosPorIdioma]);
+
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [estadosPorIdioma?.[idioma]?.mensajes]);
+
+  useEffect(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SR) {
+      setHayVoz(true);
+      const rec = new SR();
+      rec.lang = "es-AR"; rec.continuous = false; rec.interimResults = false;
+      rec.onresult = e => { setMsgActual(e.results[0][0].transcript); setEscuchando(false); };
+      rec.onend = () => setEscuchando(false);
+      rec.onerror = () => setEscuchando(false);
+      recRef.current = rec;
+    }
+  }, []);
+
+  const setEst = updater => setEstadosPorIdioma(prev => ({
+    ...prev,
+    [idioma]: typeof updater === "function" ? updater(prev[idioma]) : updater
+  }));
+
+  // Verificar logros — SIN dar puntos por logros, solo desbloquearlos
+  useEffect(() => {
+    if (!estadosPorIdioma) return;
+    const est = estadosPorIdioma[idioma];
+    const estado = {
+      metasOk: est.metas.filter(m => m.completada).length,
+      vocab: est.vocab.length,
+      puntos: est.puntos,
+      racha: est.racha,
+    };
+    const nuevos = LOGROS.filter(l => !est.logros.includes(l.id) && l.cond(estado));
+    if (nuevos.length > 0) {
+      setEst(prev => ({ ...prev, logros: [...prev.logros, ...nuevos.map(l => l.id)] }));
+      setCelebracion({ texto: `¡Logro desbloqueado! ${nuevos[0].emoji} ${nuevos[0].nombre}`, puntos: 0 });
+    }
+  }, [estadosPorIdioma?.[idioma]?.puntos, estadosPorIdioma?.[idioma]?.racha, estadosPorIdioma?.[idioma]?.metas]);
+
+  const toggleMic = () => {
+    if (!recRef.current) return;
+    if (escuchando) { recRef.current.stop(); setEscuchando(false); }
+    else { recRef.current.start(); setEscuchando(true); }
+  };
+
+  const hablar = (texto, id) => {
+    if (hablandoId === id) { window.speechSynthesis.cancel(); setHablandoId(null); return; }
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(texto);
+    utt.lang = IDIOMAS[idioma].lang; utt.rate = 0.85;
+    const voces = window.speechSynthesis.getVoices();
+    const voz = voces.find(v => v.lang.startsWith(IDIOMAS[idioma].lang.split("-")[0]));
+    if (voz) utt.voice = voz;
+    utt.onend = () => setHablandoId(null);
+    setHablandoId(id);
+    window.speechSynthesis.speak(utt);
+  };
+
+  const cambiarIdioma = k => {
+    window.speechSynthesis.cancel(); setHablandoId(null);
+    setIdioma(k); setFeedback(null); setMsgActual(""); setAvisoRepetido(false);
+  };
+
+  const enviar = async (textoOverride) => {
+    const texto = textoOverride || msgActual;
+    if (!texto.trim() || cargando) return;
+
+    const est = estadosPorIdioma[idioma];
+
+    // Anti-spam: detectar mensaje repetido
+    if (esMensajeRepetido(texto, est.mensajes)) {
+      setAvisoRepetido(true);
+      setTimeout(() => setAvisoRepetido(false), 3000);
+      setMsgActual("");
+      return;
+    }
+
+    const userMsg = { id: Date.now(), texto, de: "usuario", hora: new Date() };
+    setEst(prev => ({ ...prev, mensajes: [...(prev.mensajes || []), userMsg], totalMsg: prev.totalMsg + 1 }));
+    setMsgActual("");
+    setCargando(true);
+    setAvisoRepetido(false);
+
+    const idiomaInfo = IDIOMAS[idioma];
+    const historial = [...est.mensajes, userMsg].slice(-6).map(m => ({ de: m.de, texto: m.texto }));
+    const metasPendientes = est.metas.filter(m => !m.completada).map(m => `ID${m.id}: ${m.texto}`).join(", ");
+
+    const prompt = `Eres un tutor de ${idiomaInfo.nombre} amigable para hispanohablantes argentinos.
+Idioma que enseñás: ${idiomaInfo.nombre}
+Historial reciente: ${JSON.stringify(historial)}
+Mensaje del usuario: "${texto}"
+Modo lección: ${modoLeccion}
+Metas pendientes: ${metasPendientes}
+
+Evaluá con criterio estricto:
+- ¿El usuario demostró GENUINAMENTE dominar alguna meta pendiente? (tiene que haberla practicado de verdad en la conversación, no solo mencionarla)
+- ¿La respuesta fue correcta y relevante, o es spam/repetición sin valor educativo?
+
+Respondé SOLO con JSON válido:
+{
+  "respuesta": "Tu respuesta en ${idiomaInfo.nombre}${modoLeccion ? " con foco didáctico y ejemplos claros" : " conversacional y natural"}. Si el usuario escribió en español, respondé en ${idiomaInfo.nombre} y explicá brevemente en español.",
+  "feedback": {
+    "positivo": "Elogio corto y genuino en español, o cadena vacía si no hay mérito real",
+    "correccion": "Corrección gentil en español si hay error, o cadena vacía si está bien",
+    "sugerencia": "Sugerencia práctica en español para mejorar"
+  },
+  "vocabularioNuevo": ["palabras", "nuevas", "usadas"],
+  "correcto": true,
+  "tieneValorEducativo": true,
+  "metaCompletadaId": null
+}
+
+REGLAS IMPORTANTES:
+- metaCompletadaId: poné el número ID de la meta si el usuario demostró un uso RAZONABLE del tema en 2 o más intercambios de la conversación. No hace falta que sea perfecto, alcanza con que haya intentado y usado correctamente lo básico. Si no, null.
+- tieneValorEducativo: false solo si el mensaje es spam claro, sin sentido total, o no aporta nada al aprendizaje.
+- correcto: false solo si hay errores graves o el mensaje no tiene valor educativo.`;
+
+    try {
+      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, messages: [{ role: "user", content: prompt }] })
+      });
+      const data = await resp.json();
+      const raw = data.content.map(i => i.text || "").join("").replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(raw);
+
+      const tutorMsg = { id: Date.now() + 1, texto: parsed.respuesta, de: "tutor", hora: new Date() };
+
+      // Calcular puntos — SOLO por completar metas o racha de 5 correctas
+      let puntosGanados = 0;
+      let metaCompletada = null;
+      const nuevaRacha = parsed.correcto !== false && parsed.tieneValorEducativo !== false
+        ? est.racha + 1 : 0;
+
+      // ¿Completó una meta genuinamente?
+      if (parsed.metaCompletadaId) {
+        const meta = est.metas.find(m => m.id === parsed.metaCompletadaId && !m.completada);
+        if (meta) {
+          metaCompletada = meta;
+          puntosGanados += meta.pts;
+          setCelebracion({ texto: `¡Meta completada! 🎯 ${meta.texto}`, puntos: meta.pts });
+        }
+      }
+
+      // Bonus por 5 respuestas correctas seguidas (solo si tiene valor educativo)
+      if (parsed.tieneValorEducativo !== false && parsed.correcto !== false && nuevaRacha > 0 && nuevaRacha % 5 === 0 && !metaCompletada) {
+        puntosGanados += 20;
+        setCelebracion({ texto: `🔥 ¡5 respuestas correctas seguidas!`, puntos: 20 });
+      }
+
+      setEst(prev => ({
+        ...prev,
+        mensajes: [...(prev.mensajes || []), tutorMsg],
+        vocab: [...new Set([...(prev.vocab || []), ...(parsed.vocabularioNuevo || [])])],
+        racha: nuevaRacha,
+        puntos: prev.puntos + puntosGanados,
+        metas: metaCompletada
+          ? prev.metas.map(m => m.id === metaCompletada.id ? { ...m, completada: true } : m)
+          : prev.metas,
+      }));
+
+      setFeedback(parsed.feedback);
+      setTimeout(() => hablar(parsed.respuesta, tutorMsg.id), 300);
+    } catch {
+      setEst(prev => ({
+        ...prev,
+        mensajes: [...(prev.mensajes || []), { id: Date.now() + 1, texto: "Lo siento, hubo un error. ¡Sigamos! 😊", de: "tutor", hora: new Date() }]
+      }));
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  if (cargandoDatos) {
+    return (
+      <div className="flex h-screen items-center justify-center" style={{ background: "#0f1117" }}>
+        <div className="text-center">
+          <div className="text-4xl mb-3">📚</div>
+          <p className="text-gray-400 text-sm">Cargando tu progreso...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const est = estadosPorIdioma[idioma];
+  const rango = getRango(est.puntos);
+  const metasOk = est.metas.filter(m => m.completada).length;
+  const logrosOk = est.logros.length;
+  const idiomaActual = IDIOMAS[idioma];
+
+  return (
+    <div className="flex h-screen" style={{ background: "#0f1117", color: "#e2e8f0" }}>
+      {celebracion && <Celebracion texto={celebracion.texto} puntos={celebracion.puntos} onDone={() => setCelebracion(null)} />}
+
+      {/* CHAT */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <div style={{ background: "#1a1d27", borderBottom: "1px solid #2d3148" }} className="p-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              <BookOpen className="h-5 w-5 text-indigo-400 flex-shrink-0" />
+              <span className="font-bold text-white text-sm hidden sm:inline">Tutor de Idiomas</span>
+              <div className="flex flex-wrap gap-1">
+                {Object.entries(IDIOMAS).map(([k, v]) => {
+                  const r = getRango(estadosPorIdioma[k].puntos);
+                  return (
+                    <button key={k} onClick={() => cambiarIdioma(k)}
+                      style={{ background: idioma === k ? "#4f46e5" : "#252836", border: `1px solid ${idioma === k ? "#6366f1" : "#3d4166"}` }}
+                      className="px-2 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1">
+                      <span>{v.flag}</span>
+                      <span className="hidden sm:inline">{v.nombre}</span>
+                      {estadosPorIdioma[k].puntos > 0 && <span style={{ color: r.color }}>{r.emoji}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs flex items-center gap-1" style={{ color: guardando ? "#f59e0b" : "#10b981" }}>
+                <Save className="h-3 w-3" />{guardando ? "Guardando..." : ultimoGuardado ? "Guardado ✓" : ""}
+              </span>
+              {est.racha >= 2 && <span className="text-xs flex items-center gap-1 text-orange-400"><Flame className="h-3 w-3" />{est.racha}</span>}
+              {hayVoz && <span className="text-xs text-green-400 flex items-center gap-1"><Volume2 className="h-3 w-3" />Voz</span>}
+              <button onClick={() => setModoLeccion(!modoLeccion)}
+                style={{ background: modoLeccion ? "#4f46e5" : "#252836", border: "1px solid #3d4166" }}
+                className="px-3 py-1 rounded-lg text-xs font-medium transition-all">
+                {modoLeccion ? "📚 Lección" : "💬 Chat"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Mensajes */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {(!est.mensajes || est.mensajes.length === 0) && (
+            <div className="text-center py-8">
+              <div className="text-5xl mb-3">{idiomaActual.flag}</div>
+              <h2 className="text-xl font-bold text-white mb-1">¡Aprendamos {idiomaActual.nombre}!</h2>
+              <p className="text-gray-400 text-sm mb-1">Ganás puntos completando metas reales. 🎯</p>
+              <p className="text-gray-500 text-xs mb-4">La IA detecta automáticamente cuándo dominaste un tema.</p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {(FRASES_INICIO[idioma] || []).map(f => (
+                  <button key={f} onClick={() => enviar(f)}
+                    style={{ background: "#252836", border: "1px solid #3d4166" }}
+                    className="px-3 py-1.5 rounded-full text-sm text-gray-300 hover:border-indigo-500 transition-all">{f}</button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {(est.mensajes || []).map(msg => (
+            <div key={msg.id} className={`flex ${msg.de === "usuario" ? "justify-end" : "justify-start"}`}>
+              {msg.de === "tutor" && <div className="w-8 h-8 rounded-full bg-indigo-700 flex items-center justify-center text-sm mr-2 flex-shrink-0 mt-1">{idiomaActual.flag}</div>}
+              <div className="max-w-xs lg:max-w-md px-4 py-3 rounded-2xl"
+                style={{ background: msg.de === "usuario" ? "#4f46e5" : "#1a1d27", border: msg.de === "tutor" ? "1px solid #2d3148" : "none", borderRadius: msg.de === "usuario" ? "1rem 1rem 0.25rem 1rem" : "1rem 1rem 1rem 0.25rem" }}>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.texto}</p>
+                <div className="flex items-center justify-between mt-1.5 gap-2">
+                  <p className="text-xs" style={{ color: msg.de === "usuario" ? "#a5b4fc" : "#4a5568" }}>
+                    {new Date(msg.hora).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                  {msg.de === "tutor" && (
+                    <button onClick={() => hablar(msg.texto, msg.id)} className="flex items-center gap-1 text-xs transition-colors"
+                      style={{ color: hablandoId === msg.id ? "#818cf8" : "#4a5568" }}>
+                      <Volume2 className="h-3 w-3" />{hablandoId === msg.id ? "Detener" : "Escuchar"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {cargando && (
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-indigo-700 flex items-center justify-center text-sm">{idiomaActual.flag}</div>
+              <div style={{ background: "#1a1d27", border: "1px solid #2d3148" }} className="px-4 py-3 rounded-2xl">
+                <div className="flex space-x-1">{[0, .15, .3].map((d, i) => <div key={i} className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: `${d}s` }} />)}</div>
+              </div>
+            </div>
+          )}
+          <div ref={endRef} />
+        </div>
+
+        {/* Input */}
+        <div style={{ background: "#1a1d27", borderTop: "1px solid #2d3148" }} className="p-4">
+          {escuchando && <div className="flex items-center gap-2 mb-2"><div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" /><span className="text-xs text-red-400">Escuchando...</span></div>}
+          {avisoRepetido && (
+            <div className="mb-2 px-3 py-1.5 rounded-lg text-xs text-yellow-300" style={{ background: "#2b2200", border: "1px solid #4a3800" }}>
+              ⚠️ Ya enviaste un mensaje muy similar. ¡Intentá algo diferente para aprender más!
+            </div>
+          )}
+          <div className="flex gap-2">
+            {hayVoz && (
+              <button onClick={toggleMic} style={{ background: escuchando ? "#7c3aed" : "#252836", border: "1px solid #3d4166" }} className="px-3 py-2.5 rounded-xl transition-all flex-shrink-0">
+                {escuchando ? <MicOff className="h-5 w-5 text-white" /> : <Mic className="h-5 w-5 text-gray-300" />}
+              </button>
+            )}
+            <input value={msgActual} onChange={e => setMsgActual(e.target.value)} onKeyDown={e => e.key === "Enter" && !e.shiftKey && enviar()}
+              placeholder={`Escribí en español o en ${idiomaActual.nombre}...`} disabled={cargando}
+              style={{ background: "#252836", border: "1px solid #3d4166", color: "#e2e8f0" }}
+              className="flex-1 px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-500" />
+            <button onClick={() => enviar()} disabled={cargando || !msgActual.trim()}
+              style={{ background: cargando || !msgActual.trim() ? "#252836" : "#4f46e5" }}
+              className="px-4 py-2.5 rounded-xl transition-all disabled:opacity-50 flex-shrink-0"><Send className="h-5 w-5" /></button>
+          </div>
+        </div>
+      </div>
+
+      {/* SIDEBAR */}
+      <div style={{ background: "#1a1d27", borderLeft: "1px solid #2d3148", width: "300px" }} className="flex flex-col flex-shrink-0 overflow-hidden">
+        {/* XP y rango */}
+        <div style={{ borderBottom: "1px solid #2d3148", background: "linear-gradient(135deg, #1a1d27, #1e1b3a)", flexShrink: 0 }} className="p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xl">{idiomaActual.flag}</span>
+            <span className="text-sm font-bold text-white">{idiomaActual.nombre}</span>
+          </div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">{rango.emoji}</span>
+              <span className="font-bold text-sm" style={{ color: rango.color }}>{rango.nombre}</span>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-yellow-400">{est.puntos}</div>
+              <div className="text-xs text-gray-400">XP</div>
+            </div>
+          </div>
+          <BarraXP puntos={est.puntos} />
+          <div className="grid grid-cols-3 gap-2 mt-3 text-center">
+            {[["💬", est.totalMsg, "Msgs"], ["📚", est.vocab.length, "Palabras"], ["🔥", est.racha, "Racha"]].map(([ico, v, label]) => (
+              <div key={label} style={{ background: "#252836", border: "1px solid #2d3148" }} className="p-1.5 rounded-lg">
+                <div className="text-base">{ico}</div>
+                <div className="text-sm font-bold text-white">{v}</div>
+                <div className="text-xs text-gray-500">{label}</div>
+              </div>
+            ))}
+          </div>
+          {/* Cómo ganar puntos */}
+          <div className="mt-3 text-xs text-gray-500 space-y-0.5" style={{ borderTop: "1px solid #2d3148", paddingTop: "8px" }}>
+            <p className="text-gray-400 font-semibold mb-1">¿Cómo ganar XP?</p>
+            <p>🎯 Completar una meta → puntos de esa meta</p>
+            <p>🔥 5 respuestas correctas seguidas → +20 XP</p>
+          </div>
+        </div>
+
+        {/* Todos los idiomas colapsable */}
+        <details style={{ borderBottom: "1px solid #2d3148", flexShrink: 0 }}>
+          <summary className="p-3 cursor-pointer flex items-center justify-between select-none text-xs text-gray-400 font-semibold uppercase tracking-wide">
+            Todos tus idiomas <span>▼</span>
+          </summary>
+          <div className="px-3 pb-3 space-y-1">
+            {Object.entries(IDIOMAS).map(([k, v]) => {
+              const ep = estadosPorIdioma[k]; const r = getRango(ep.puntos);
+              return (
+                <button key={k} onClick={() => cambiarIdioma(k)}
+                  style={{ background: idioma === k ? "#252860" : "transparent", border: `1px solid ${idioma === k ? "#4f46e5" : "transparent"}` }}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all text-left">
+                  <span className="text-sm">{v.flag}</span>
+                  <span className="text-xs text-gray-300 flex-1">{v.nombre}</span>
+                  <span className="text-xs" style={{ color: r.color }}>{r.emoji} {ep.puntos > 0 ? ep.puntos + " XP" : "—"}</span>
+                </button>
+              );
+            })}
+          </div>
+        </details>
+
+        {/* Feedback */}
+        {feedback && (
+          <div style={{ borderBottom: "1px solid #2d3148", flexShrink: 0 }} className="p-3">
+            <h3 className="font-semibold text-white mb-2 flex items-center gap-2 text-sm"><MessageSquare className="h-4 w-4 text-indigo-400" />Feedback</h3>
+            <div className="space-y-1.5 text-xs">
+              {feedback.positivo && <div style={{ background: "#0d2b1a", border: "1px solid #1a4a2e" }} className="p-2 rounded-lg text-green-300">✅ {feedback.positivo}</div>}
+              {feedback.correccion && <div style={{ background: "#2b1a0d", border: "1px solid #4a2e1a" }} className="p-2 rounded-lg text-orange-300">📝 {feedback.correccion}</div>}
+              {feedback.sugerencia && <div style={{ background: "#0d1a2b", border: "1px solid #1a2e4a" }} className="p-2 rounded-lg text-blue-300">💡 {feedback.sugerencia}</div>}
+            </div>
+          </div>
+        )}
+
+        {/* Tabs */}
+        <div className="flex flex-shrink-0" style={{ borderBottom: "1px solid #2d3148" }}>
+          {[["metas", "🎯", `Metas (${metasOk}/12)`], ["logros", "🏆", `Logros (${logrosOk}/${LOGROS.length})`]].map(([t, ico, label]) => (
+            <button key={t} onClick={() => setTab(t)} className="flex-1 py-2 text-xs font-medium transition-all"
+              style={{ color: tab === t ? "#818cf8" : "#6b7280", borderBottom: tab === t ? "2px solid #6366f1" : "2px solid transparent", background: "transparent" }}>
+              {ico} {label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ flex: "1 1 0", minHeight: 0, overflowY: "auto" }} className="p-3 space-y-1.5">
+          {tab === "metas" && est.metas.map(meta => (
+            <div key={meta.id}
+              style={{ background: meta.completada ? "#1a2b1a" : "#252836", border: `1px solid ${meta.completada ? "#2d4a2d" : "#2d3148"}` }}
+              className="w-full p-2.5 rounded-lg flex items-center gap-2">
+              <span className="flex-shrink-0 text-base">{meta.completada ? "✅" : "⬜"}</span>
+              <span className={`text-xs leading-tight flex-1 ${meta.completada ? "line-through text-gray-500" : "text-gray-300"}`}>{meta.texto}</span>
+              <span className="text-xs font-bold text-yellow-400 flex-shrink-0">+{meta.pts}</span>
+            </div>
+          ))}
+          {tab === "logros" && LOGROS.map(logro => {
+            const ok = est.logros.includes(logro.id);
+            return (
+              <div key={logro.id}
+                style={{ background: ok ? "#1a1a2e" : "#252836", border: `1px solid ${ok ? "#4f46e5" : "#2d3148"}`, opacity: ok ? 1 : 0.45 }}
+                className="p-2 rounded-lg flex items-center gap-2">
+                <span className="text-xl flex-shrink-0">{logro.emoji}</span>
+                <div className="min-w-0 flex-1">
+                  <p className={`text-xs font-bold ${ok ? "text-indigo-300" : "text-gray-500"}`}>{logro.nombre}</p>
+                  <p className="text-xs text-gray-500 leading-tight">{logro.desc}</p>
+                </div>
+                {ok && <Star className="h-3 w-3 text-yellow-400 flex-shrink-0" />}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
