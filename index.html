@@ -1,6 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tutor de Idiomas</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0f1117;color:#e2e8f0;font-family:sans-serif;height:100vh;overflow:hidden}
+    ::-webkit-scrollbar{width:5px}
+    ::-webkit-scrollbar-track{background:#1a1d27}
+    ::-webkit-scrollbar-thumb{background:#3d4166;border-radius:3px}
+    input{outline:none}
+    button{cursor:pointer}
+    details>summary{list-style:none}
+    details>summary::-webkit-details-marker{display:none}
+    @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+    @keyframes fadeIn{from{opacity:0;transform:scale(0.8)}to{opacity:1;transform:scale(1)}}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
 
-import { useState, useEffect, useRef } from "react";
-import { Send, BookOpen, MessageSquare, CheckCircle, Mic, MicOff, Volume2, Star, Flame, Save } from "lucide-react";
+// ⚠️ REEMPLAZÁ ESTO CON TU API KEY DE ANTHROPIC
+const API_KEY = "Marie7";
 
 const IDIOMAS = {
   ingles:    { nombre: "Inglés",    flag: "🇺🇸", lang: "en-US" },
@@ -14,7 +41,7 @@ const IDIOMAS = {
   catalan:   { nombre: "Catalán",   flag: "🏴",  lang: "ca-ES" },
 };
 
-const FRASES_INICIO = {
+const FRASES = {
   ingles:    ["Hi! How are you?", "¿Cómo se dice 'disculpe'?", "Quiero practicar una entrevista", "Enséñame vocabulario de viajes"],
   italiano:  ["Ciao! Come stai?", "¿Cómo se dice 'gracias'?", "Quiero pedir comida en un restaurante", "Enséñame a presentarme"],
   frances:   ["Bonjour! Comment ça va?", "¿Cómo se dice 'por favor'?", "Quiero practicar el acento", "Enséñame saludos formales"],
@@ -26,601 +53,450 @@ const FRASES_INICIO = {
   catalan:   ["Hola! Com estàs?", "¿Cómo se dice 'por favor'?", "Quiero practicar conversación básica", "Enséñame expresiones catalanas"],
 };
 
-const METAS_BASE = [
-  { id: 1,  texto: "Dominar saludos y presentaciones",   pts: 100 },
-  { id: 2,  texto: "Verbos en presente simple",          pts: 150 },
-  { id: 3,  texto: "Vocabulario de trabajo y oficina",   pts: 120 },
-  { id: 4,  texto: "Hacer preguntas correctamente",      pts: 130 },
-  { id: 5,  texto: "Hablar sobre rutinas diarias",       pts: 110 },
-  { id: 6,  texto: "Expresar gustos y preferencias",     pts: 120 },
-  { id: 7,  texto: "Tiempo pasado",                      pts: 200 },
-  { id: 8,  texto: "Vocabulario de viajes y turismo",    pts: 130 },
-  { id: 9,  texto: "Expresiones idiomáticas comunes",    pts: 180 },
-  { id: 10, texto: "Pronunciación de sonidos difíciles", pts: 160 },
-  { id: 11, texto: "Idioma para situaciones sociales",   pts: 140 },
-  { id: 12, texto: "Conectores y fluidez al hablar",     pts: 170 },
+const METAS = [
+  { id:1,  texto:"Dominar saludos y presentaciones",   pts:100 },
+  { id:2,  texto:"Verbos en presente simple",          pts:150 },
+  { id:3,  texto:"Vocabulario de trabajo y oficina",   pts:120 },
+  { id:4,  texto:"Hacer preguntas correctamente",      pts:130 },
+  { id:5,  texto:"Hablar sobre rutinas diarias",       pts:110 },
+  { id:6,  texto:"Expresar gustos y preferencias",     pts:120 },
+  { id:7,  texto:"Tiempo pasado",                      pts:200 },
+  { id:8,  texto:"Vocabulario de viajes y turismo",    pts:130 },
+  { id:9,  texto:"Expresiones idiomáticas comunes",    pts:180 },
+  { id:10, texto:"Pronunciación de sonidos difíciles", pts:160 },
+  { id:11, texto:"Idioma para situaciones sociales",   pts:140 },
+  { id:12, texto:"Conectores y fluidez al hablar",     pts:170 },
 ];
 
 const RANGOS = [
-  { nombre: "Novato",      min: 0,    max: 299,      color: "#6b7280", emoji: "🥚" },
-  { nombre: "Aprendiz",   min: 300,  max: 699,      color: "#10b981", emoji: "🌱" },
-  { nombre: "Estudiante", min: 700,  max: 1299,     color: "#3b82f6", emoji: "📘" },
-  { nombre: "Practicante",min: 1300, max: 2099,     color: "#8b5cf6", emoji: "⚡" },
-  { nombre: "Experto",    min: 2100, max: 3199,     color: "#f59e0b", emoji: "🌟" },
-  { nombre: "Maestro",    min: 3200, max: Infinity, color: "#ef4444", emoji: "👑" },
+  { nombre:"Novato",      min:0,    max:299,      color:"#6b7280", emoji:"🥚" },
+  { nombre:"Aprendiz",   min:300,  max:699,      color:"#10b981", emoji:"🌱" },
+  { nombre:"Estudiante", min:700,  max:1299,     color:"#3b82f6", emoji:"📘" },
+  { nombre:"Practicante",min:1300, max:2099,     color:"#8b5cf6", emoji:"⚡" },
+  { nombre:"Experto",    min:2100, max:3199,     color:"#f59e0b", emoji:"🌟" },
+  { nombre:"Maestro",    min:3200, max:Infinity, color:"#ef4444", emoji:"👑" },
 ];
 
 const LOGROS = [
-  { id: "primera_meta",   emoji: "🎯", nombre: "Primera meta",     desc: "Completaste tu primera meta",        cond: s => s.metasOk >= 1 },
-  { id: "tres_metas",     emoji: "🏅", nombre: "Dedicado",         desc: "Completaste 3 metas",                cond: s => s.metasOk >= 3 },
-  { id: "seis_metas",     emoji: "🏆", nombre: "Imparable",        desc: "Completaste 6 metas",                cond: s => s.metasOk >= 6 },
-  { id: "todas_metas",    emoji: "👑", nombre: "Maestro completo", desc: "Completaste todas las metas",        cond: s => s.metasOk >= 12 },
-  { id: "vocab_10",       emoji: "📖", nombre: "Curioso",          desc: "Aprendiste 10 palabras nuevas",      cond: s => s.vocab >= 10 },
-  { id: "vocab_30",       emoji: "📚", nombre: "Lector voraz",     desc: "Aprendiste 30 palabras nuevas",      cond: s => s.vocab >= 30 },
-  { id: "pts_300",        emoji: "⭐", nombre: "Acumulador",       desc: "Alcanzaste 300 puntos",              cond: s => s.puntos >= 300 },
-  { id: "pts_1000",       emoji: "🌟", nombre: "Mil puntos",       desc: "Alcanzaste 1000 puntos",             cond: s => s.puntos >= 1000 },
-  { id: "racha_5",        emoji: "🔥", nombre: "En llamas",        desc: "5 respuestas correctas seguidas",   cond: s => s.racha >= 5 },
-  { id: "racha_10",       emoji: "💥", nombre: "Imparable",        desc: "10 respuestas correctas seguidas",  cond: s => s.racha >= 10 },
+  { id:"primera_meta", emoji:"🎯", nombre:"Primera meta",     desc:"Completaste tu primera meta",        cond:s=>s.metasOk>=1 },
+  { id:"tres_metas",   emoji:"🏅", nombre:"Dedicado",         desc:"Completaste 3 metas",                cond:s=>s.metasOk>=3 },
+  { id:"seis_metas",   emoji:"🏆", nombre:"Imparable",        desc:"Completaste 6 metas",                cond:s=>s.metasOk>=6 },
+  { id:"todas_metas",  emoji:"👑", nombre:"Maestro completo", desc:"Completaste todas las metas",        cond:s=>s.metasOk>=12 },
+  { id:"vocab_10",     emoji:"📖", nombre:"Curioso",          desc:"Aprendiste 10 palabras nuevas",      cond:s=>s.vocab>=10 },
+  { id:"vocab_30",     emoji:"📚", nombre:"Lector voraz",     desc:"Aprendiste 30 palabras nuevas",      cond:s=>s.vocab>=30 },
+  { id:"pts_300",      emoji:"⭐", nombre:"Acumulador",       desc:"Alcanzaste 300 puntos",              cond:s=>s.puntos>=300 },
+  { id:"pts_1000",     emoji:"🌟", nombre:"Mil puntos",       desc:"Alcanzaste 1000 puntos",             cond:s=>s.puntos>=1000 },
+  { id:"racha_5",      emoji:"🔥", nombre:"En llamas",        desc:"5 respuestas correctas seguidas",   cond:s=>s.racha>=5 },
+  { id:"racha_10",     emoji:"💥", nombre:"Imparable",        desc:"10 respuestas correctas seguidas",  cond:s=>s.racha>=10 },
 ];
 
-const getRango = pts => RANGOS.find(r => pts >= r.min && pts <= r.max) || RANGOS[0];
-const getNextRango = pts => { const i = RANGOS.findIndex(r => pts >= r.min && pts <= r.max); return RANGOS[i + 1] || null; };
+const getRango = pts => RANGOS.find(r => pts>=r.min && pts<=r.max) || RANGOS[0];
+const getNext  = pts => { const i=RANGOS.findIndex(r=>pts>=r.min&&pts<=r.max); return RANGOS[i+1]||null; };
+const estadoBase = () => ({ puntos:0, totalMsg:0, racha:0, vocab:[], metas:METAS.map(m=>({...m,completada:false})), logros:[], mensajes:[] });
 
-const estadoInicial = () => ({
-  puntos: 0, totalMsg: 0, racha: 0, vocab: [],
-  metas: METAS_BASE.map(m => ({ ...m, completada: false })),
-  logros: [], mensajes: [],
-  ultimosMensajes: [], // para detectar repeticiones
-});
-
-// Detecta si un mensaje es muy similar a los últimos (anti-spam)
-const esMensajeRepetido = (texto, historial = []) => {
-  const norm = t => t.toLowerCase().trim().replace(/\s+/g, " ");
-  const textoNorm = norm(texto);
-  return historial.slice(-5).some(m => {
-    if (m.de !== "usuario") return false;
-    const mNorm = norm(m.texto);
-    if (mNorm === textoNorm) return true;
-    // similaridad básica: si comparten más del 80% de palabras
-    const palabrasA = new Set(textoNorm.split(" "));
-    const palabrasB = new Set(mNorm.split(" "));
-    const comunes = [...palabrasA].filter(p => palabrasB.has(p)).length;
-    const similitud = comunes / Math.max(palabrasA.size, palabrasB.size);
-    return similitud > 0.8;
+const esRepetido = (txt, hist=[]) => {
+  const n = t => t.toLowerCase().trim().replace(/\s+/g," ");
+  const a = n(txt);
+  return hist.slice(-5).some(m => {
+    if(m.de!=="usuario") return false;
+    const b = n(m.texto);
+    if(a===b) return true;
+    const sa=new Set(a.split(" ")), sb=new Set(b.split(" "));
+    const com=[...sa].filter(p=>sb.has(p)).length;
+    return com/Math.max(sa.size,sb.size)>0.8;
   });
 };
 
-function Celebracion({ texto, puntos, onDone }) {
-  useEffect(() => { const t = setTimeout(onDone, 2200); return () => clearTimeout(t); }, []);
+function Celebracion({texto,puntos,onDone}){
+  useEffect(()=>{const t=setTimeout(onDone,2200);return()=>clearTimeout(t);},[]);
   return (
-    <div className="fixed inset-0 pointer-events-none flex items-center justify-center z-50">
-      <div className="text-center">
-        <div className="text-5xl mb-2">🎉</div>
-        <div className="text-white font-bold text-lg px-6 py-3 rounded-2xl shadow-2xl"
-          style={{ background: "linear-gradient(135deg, #4f46e5, #7c3aed)" }}>{texto}</div>
-        {puntos > 0 && <div className="mt-2 text-yellow-400 font-bold text-lg">+{puntos} XP ✨</div>}
+    <div style={{position:"fixed",inset:0,pointerEvents:"none",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999}}>
+      <div style={{textAlign:"center",animation:"fadeIn 0.3s ease"}}>
+        <div style={{fontSize:"3rem",marginBottom:"8px"}}>🎉</div>
+        <div style={{color:"white",fontWeight:"bold",fontSize:"1rem",padding:"12px 24px",borderRadius:"16px",background:"linear-gradient(135deg,#4f46e5,#7c3aed)"}}>{texto}</div>
+        {puntos>0 && <div style={{marginTop:"8px",color:"#facc15",fontWeight:"bold",fontSize:"1.1rem"}}>+{puntos} XP ✨</div>}
       </div>
     </div>
   );
 }
 
-function BarraXP({ puntos }) {
-  const rango = getRango(puntos);
-  const next = getNextRango(puntos);
-  const pct = next ? Math.round(((puntos - rango.min) / (next.min - rango.min)) * 100) : 100;
+function BarraXP({puntos}){
+  const r=getRango(puntos), nx=getNext(puntos);
+  const pct=nx?Math.round(((puntos-r.min)/(nx.min-r.min))*100):100;
   return (
     <div>
-      <div className="flex justify-between items-center mb-1">
-        <span className="text-xs font-bold" style={{ color: rango.color }}>{rango.emoji} {rango.nombre}</span>
-        {next && <span className="text-xs text-gray-400">{puntos} / {next.min} XP</span>}
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:"4px"}}>
+        <span style={{fontSize:"0.75rem",fontWeight:"bold",color:r.color}}>{r.emoji} {r.nombre}</span>
+        {nx&&<span style={{fontSize:"0.75rem",color:"#9ca3af"}}>{puntos}/{nx.min} XP</span>}
       </div>
-      <div className="w-full rounded-full h-2" style={{ background: "#2d3148" }}>
-        <div className="h-2 rounded-full transition-all duration-700"
-          style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${rango.color}, #818cf8)` }} />
+      <div style={{background:"#2d3148",borderRadius:"999px",height:"8px"}}>
+        <div style={{height:"8px",borderRadius:"999px",width:`${pct}%`,background:`linear-gradient(90deg,${r.color},#818cf8)`,transition:"width 0.7s"}}/>
       </div>
     </div>
   );
 }
 
-export default function TutorIdiomas() {
-  const [idioma, setIdioma] = useState("ingles");
-  const [estadosPorIdioma, setEstadosPorIdioma] = useState(null);
-  const [msgActual, setMsgActual] = useState("");
-  const [cargando, setCargando] = useState(false);
-  const [modoLeccion, setModoLeccion] = useState(false);
-  const [feedback, setFeedback] = useState(null);
-  const [escuchando, setEscuchando] = useState(false);
-  const [hayVoz, setHayVoz] = useState(false);
-  const [hablandoId, setHablandoId] = useState(null);
-  const [celebracion, setCelebracion] = useState(null);
-  const [tab, setTab] = useState("metas");
-  const [guardando, setGuardando] = useState(false);
-  const [ultimoGuardado, setUltimoGuardado] = useState(null);
-  const [cargandoDatos, setCargandoDatos] = useState(true);
-  const [storageOk, setStorageOk] = useState(false);
-  const [avisoRepetido, setAvisoRepetido] = useState(false);
-  const endRef = useRef(null);
-  const recRef = useRef(null);
-  const saveTimerRef = useRef(null);
+function App(){
+  const [idioma,setIdioma]=useState("ingles");
+  const [est,setEst]=useState(null);
+  const [msg,setMsg]=useState("");
+  const [cargando,setCargando]=useState(false);
+  const [leccion,setLeccion]=useState(false);
+  const [feedback,setFeedback]=useState(null);
+  const [escucha,setEscucha]=useState(false);
+  const [hayVoz,setHayVoz]=useState(false);
+  const [hablaId,setHablaId]=useState(null);
+  const [celebra,setCelebra]=useState(null);
+  const [tab,setTab]=useState("metas");
+  const [guardando,setGuardando]=useState(false);
+  const [guardadoOk,setGuardadoOk]=useState(false);
+  const [cargandoDatos,setCargandoDatos]=useState(true);
+  const [avisoRep,setAvisoRep]=useState(false);
+  const endRef=useRef(null);
+  const recRef=useRef(null);
+  const timerRef=useRef(null);
 
-  // Cargar progreso
-  useEffect(() => {
-    const cargar = async () => {
-      try {
-        let datos = null;
-        // Intentar cargar desde window.storage (Claude)
-        if (window.storage) {
-          try {
-            const res = await window.storage.get("progreso_idiomas_v2");
-            if (res && res.value) {
-              datos = JSON.parse(res.value);
-              setStorageOk(true);
-            }
-          } catch (e) { /* key no existe todavía, normal */ }
-        }
-        const completo = Object.fromEntries(
-          Object.keys(IDIOMAS).map(k => [k,
-            datos?.[k] ? {
-              ...estadoInicial(),
-              puntos:   datos[k].puntos   ?? 0,
-              totalMsg: datos[k].totalMsg ?? 0,
-              racha:    datos[k].racha    ?? 0,
-              vocab:    datos[k].vocab    ?? [],
-              metas:    datos[k].metas    ?? estadoInicial().metas,
-              logros:   datos[k].logros   ?? [],
-              mensajes: [],
-            } : estadoInicial()
-          ])
-        );
-        setEstadosPorIdioma(completo);
-      } catch (e) {
-        console.error("Error cargando:", e);
-        setEstadosPorIdioma(Object.fromEntries(Object.keys(IDIOMAS).map(k => [k, estadoInicial()])));
-      } finally {
-        setCargandoDatos(false);
+  // Cargar desde localStorage
+  useEffect(()=>{
+    try{
+      const raw=localStorage.getItem("tutor_v3");
+      if(raw){
+        const datos=JSON.parse(raw);
+        const completo=Object.fromEntries(Object.keys(IDIOMAS).map(k=>[k,
+          datos[k]?{...estadoBase(),puntos:datos[k].puntos??0,totalMsg:datos[k].totalMsg??0,racha:datos[k].racha??0,vocab:datos[k].vocab??[],metas:datos[k].metas??estadoBase().metas,logros:datos[k].logros??[],mensajes:[]}:estadoBase()
+        ]));
+        setEst(completo);
+      } else {
+        setEst(Object.fromEntries(Object.keys(IDIOMAS).map(k=>[k,estadoBase()])));
       }
-    };
-    cargar();
-  }, []);
+    }catch(e){
+      setEst(Object.fromEntries(Object.keys(IDIOMAS).map(k=>[k,estadoBase()])));
+    }finally{setCargandoDatos(false);}
+  },[]);
 
-  // Guardar progreso
-  useEffect(() => {
-    if (!estadosPorIdioma) return;
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(async () => {
-      if (!window.storage) return;
+  // Guardar en localStorage
+  useEffect(()=>{
+    if(!est) return;
+    if(timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current=setTimeout(()=>{
       setGuardando(true);
-      try {
-        const paraGuardar = Object.fromEntries(
-          Object.keys(IDIOMAS).map(k => [k, {
-            puntos:   estadosPorIdioma[k].puntos,
-            totalMsg: estadosPorIdioma[k].totalMsg,
-            racha:    estadosPorIdioma[k].racha,
-            vocab:    estadosPorIdioma[k].vocab,
-            metas:    estadosPorIdioma[k].metas,
-            logros:   estadosPorIdioma[k].logros,
-          }])
-        );
-        const res = await window.storage.set("progreso_idiomas_v2", JSON.stringify(paraGuardar));
-        if (res) { setUltimoGuardado(new Date()); setStorageOk(true); }
-      } catch (e) { console.error("Error guardando:", e); }
-      finally { setGuardando(false); }
-    }, 1500);
-    return () => clearTimeout(saveTimerRef.current);
-  }, [estadosPorIdioma]);
+      try{
+        const data=Object.fromEntries(Object.keys(IDIOMAS).map(k=>[k,{puntos:est[k].puntos,totalMsg:est[k].totalMsg,racha:est[k].racha,vocab:est[k].vocab,metas:est[k].metas,logros:est[k].logros}]));
+        localStorage.setItem("tutor_v3",JSON.stringify(data));
+        setGuardadoOk(true);
+      }catch(e){}finally{setGuardando(false);}
+    },1500);
+    return()=>clearTimeout(timerRef.current);
+  },[est]);
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [estadosPorIdioma?.[idioma]?.mensajes]);
+  useEffect(()=>{endRef.current?.scrollIntoView({behavior:"smooth"});},[est?.[idioma]?.mensajes]);
 
-  useEffect(() => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SR) {
+  useEffect(()=>{
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(SR){
       setHayVoz(true);
-      const rec = new SR();
-      rec.lang = "es-AR"; rec.continuous = false; rec.interimResults = false;
-      rec.onresult = e => { setMsgActual(e.results[0][0].transcript); setEscuchando(false); };
-      rec.onend = () => setEscuchando(false);
-      rec.onerror = () => setEscuchando(false);
-      recRef.current = rec;
+      const r=new SR();
+      r.lang="es-AR";r.continuous=false;r.interimResults=false;
+      r.onresult=e=>{setMsg(e.results[0][0].transcript);setEscucha(false);};
+      r.onend=()=>setEscucha(false);
+      r.onerror=()=>setEscucha(false);
+      recRef.current=r;
     }
-  }, []);
+  },[]);
 
-  const setEst = updater => setEstadosPorIdioma(prev => ({
-    ...prev,
-    [idioma]: typeof updater === "function" ? updater(prev[idioma]) : updater
-  }));
+  const updEst=fn=>setEst(prev=>({...prev,[idioma]:fn(prev[idioma])}));
 
-  // Verificar logros — SIN dar puntos por logros, solo desbloquearlos
-  useEffect(() => {
-    if (!estadosPorIdioma) return;
-    const est = estadosPorIdioma[idioma];
-    const estado = {
-      metasOk: est.metas.filter(m => m.completada).length,
-      vocab: est.vocab.length,
-      puntos: est.puntos,
-      racha: est.racha,
-    };
-    const nuevos = LOGROS.filter(l => !est.logros.includes(l.id) && l.cond(estado));
-    if (nuevos.length > 0) {
-      setEst(prev => ({ ...prev, logros: [...prev.logros, ...nuevos.map(l => l.id)] }));
-      setCelebracion({ texto: `¡Logro desbloqueado! ${nuevos[0].emoji} ${nuevos[0].nombre}`, puntos: 0 });
+  // Logros
+  useEffect(()=>{
+    if(!est) return;
+    const e=est[idioma];
+    const s={metasOk:e.metas.filter(m=>m.completada).length,vocab:e.vocab.length,puntos:e.puntos,racha:e.racha};
+    const nuevos=LOGROS.filter(l=>!e.logros.includes(l.id)&&l.cond(s));
+    if(nuevos.length>0){
+      updEst(prev=>({...prev,logros:[...prev.logros,...nuevos.map(l=>l.id)]}));
+      setCelebra({texto:`¡Logro! ${nuevos[0].emoji} ${nuevos[0].nombre}`,puntos:0});
     }
-  }, [estadosPorIdioma?.[idioma]?.puntos, estadosPorIdioma?.[idioma]?.racha, estadosPorIdioma?.[idioma]?.metas]);
+  },[est?.[idioma]?.puntos,est?.[idioma]?.racha,est?.[idioma]?.metas]);
 
-  const toggleMic = () => {
-    if (!recRef.current) return;
-    if (escuchando) { recRef.current.stop(); setEscuchando(false); }
-    else { recRef.current.start(); setEscuchando(true); }
+  const toggleMic=()=>{
+    if(!recRef.current) return;
+    if(escucha){recRef.current.stop();setEscucha(false);}
+    else{recRef.current.start();setEscucha(true);}
   };
 
-  const hablar = (texto, id) => {
-    if (hablandoId === id) { window.speechSynthesis.cancel(); setHablandoId(null); return; }
+  const hablar=(txt,id)=>{
+    if(hablaId===id){window.speechSynthesis.cancel();setHablaId(null);return;}
     window.speechSynthesis.cancel();
-    const utt = new SpeechSynthesisUtterance(texto);
-    utt.lang = IDIOMAS[idioma].lang; utt.rate = 0.85;
-    const voces = window.speechSynthesis.getVoices();
-    const voz = voces.find(v => v.lang.startsWith(IDIOMAS[idioma].lang.split("-")[0]));
-    if (voz) utt.voice = voz;
-    utt.onend = () => setHablandoId(null);
-    setHablandoId(id);
-    window.speechSynthesis.speak(utt);
+    const u=new SpeechSynthesisUtterance(txt);
+    u.lang=IDIOMAS[idioma].lang;u.rate=0.85;
+    const vs=window.speechSynthesis.getVoices();
+    const v=vs.find(x=>x.lang.startsWith(IDIOMAS[idioma].lang.split("-")[0]));
+    if(v) u.voice=v;
+    u.onend=()=>setHablaId(null);
+    setHablaId(id);
+    window.speechSynthesis.speak(u);
   };
 
-  const cambiarIdioma = k => {
-    window.speechSynthesis.cancel(); setHablandoId(null);
-    setIdioma(k); setFeedback(null); setMsgActual(""); setAvisoRepetido(false);
-  };
+  const cambiar=k=>{window.speechSynthesis.cancel();setHablaId(null);setIdioma(k);setFeedback(null);setMsg("");setAvisoRep(false);};
 
-  const enviar = async (textoOverride) => {
-    const texto = textoOverride || msgActual;
-    if (!texto.trim() || cargando) return;
-
-    const est = estadosPorIdioma[idioma];
-
-    // Anti-spam: detectar mensaje repetido
-    if (esMensajeRepetido(texto, est.mensajes)) {
-      setAvisoRepetido(true);
-      setTimeout(() => setAvisoRepetido(false), 3000);
-      setMsgActual("");
-      return;
-    }
-
-    const userMsg = { id: Date.now(), texto, de: "usuario", hora: new Date() };
-    setEst(prev => ({ ...prev, mensajes: [...(prev.mensajes || []), userMsg], totalMsg: prev.totalMsg + 1 }));
-    setMsgActual("");
-    setCargando(true);
-    setAvisoRepetido(false);
-
-    const idiomaInfo = IDIOMAS[idioma];
-    const historial = [...est.mensajes, userMsg].slice(-6).map(m => ({ de: m.de, texto: m.texto }));
-    const metasPendientes = est.metas.filter(m => !m.completada).map(m => `ID${m.id}: ${m.texto}`).join(", ");
-
-    const prompt = `Eres un tutor de ${idiomaInfo.nombre} amigable para hispanohablantes argentinos.
-Idioma que enseñás: ${idiomaInfo.nombre}
-Historial reciente: ${JSON.stringify(historial)}
-Mensaje del usuario: "${texto}"
-Modo lección: ${modoLeccion}
-Metas pendientes: ${metasPendientes}
-
-Evaluá con criterio estricto:
-- ¿El usuario demostró GENUINAMENTE dominar alguna meta pendiente? (tiene que haberla practicado de verdad en la conversación, no solo mencionarla)
-- ¿La respuesta fue correcta y relevante, o es spam/repetición sin valor educativo?
+  const enviar=async(override)=>{
+    const txt=override||msg;
+    if(!txt.trim()||cargando) return;
+    const e=est[idioma];
+    if(esRepetido(txt,e.mensajes)){setAvisoRep(true);setTimeout(()=>setAvisoRep(false),3000);setMsg("");return;}
+    const uMsg={id:Date.now(),texto:txt,de:"usuario",hora:new Date()};
+    updEst(prev=>({...prev,mensajes:[...prev.mensajes,uMsg],totalMsg:prev.totalMsg+1}));
+    setMsg("");setCargando(true);setAvisoRep(false);
+    const inf=IDIOMAS[idioma];
+    const hist=[...e.mensajes,uMsg].slice(-6).map(m=>({de:m.de,texto:m.texto}));
+    const pend=e.metas.filter(m=>!m.completada).map(m=>`ID${m.id}:${m.texto}`).join(", ");
+    const prompt=`Eres un tutor de ${inf.nombre} amigable para hispanohablantes argentinos.
+Idioma: ${inf.nombre}
+Historial: ${JSON.stringify(hist)}
+Mensaje: "${txt}"
+Modo lección: ${leccion}
+Metas pendientes: ${pend}
 
 Respondé SOLO con JSON válido:
 {
-  "respuesta": "Tu respuesta en ${idiomaInfo.nombre}${modoLeccion ? " con foco didáctico y ejemplos claros" : " conversacional y natural"}. Si el usuario escribió en español, respondé en ${idiomaInfo.nombre} y explicá brevemente en español.",
-  "feedback": {
-    "positivo": "Elogio corto y genuino en español, o cadena vacía si no hay mérito real",
-    "correccion": "Corrección gentil en español si hay error, o cadena vacía si está bien",
-    "sugerencia": "Sugerencia práctica en español para mejorar"
-  },
-  "vocabularioNuevo": ["palabras", "nuevas", "usadas"],
+  "respuesta": "Respuesta en ${inf.nombre}${leccion?" con foco didáctico":" conversacional"}. Si el usuario escribió en español, explicá en español también.",
+  "feedback": {"positivo":"Elogio corto en español o vacío","correccion":"Corrección gentil en español o vacío","sugerencia":"Sugerencia práctica en español"},
+  "vocabularioNuevo": ["palabras"],
   "correcto": true,
   "tieneValorEducativo": true,
   "metaCompletadaId": null
 }
-
-REGLAS IMPORTANTES:
-- metaCompletadaId: poné el número ID de la meta si el usuario demostró un uso RAZONABLE del tema en 2 o más intercambios de la conversación. No hace falta que sea perfecto, alcanza con que haya intentado y usado correctamente lo básico. Si no, null.
-- tieneValorEducativo: false solo si el mensaje es spam claro, sin sentido total, o no aporta nada al aprendizaje.
-- correcto: false solo si hay errores graves o el mensaje no tiene valor educativo.`;
-
-    try {
-      const resp = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, messages: [{ role: "user", content: prompt }] })
+REGLAS:
+- metaCompletadaId: ID de la meta si el usuario usó correctamente ese tema en 2+ intercambios. No hace falta perfección, alcanza con lo básico. Si no, null.
+- tieneValorEducativo: false solo si es spam claro o sin sentido.
+- correcto: false solo si hay errores graves.`;
+    try{
+      const res=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":API_KEY,"anthropic-version":"2023-06-01"},
+        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:prompt}]})
       });
-      const data = await resp.json();
-      const raw = data.content.map(i => i.text || "").join("").replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(raw);
-
-      const tutorMsg = { id: Date.now() + 1, texto: parsed.respuesta, de: "tutor", hora: new Date() };
-
-      // Calcular puntos — SOLO por completar metas o racha de 5 correctas
-      let puntosGanados = 0;
-      let metaCompletada = null;
-      const nuevaRacha = parsed.correcto !== false && parsed.tieneValorEducativo !== false
-        ? est.racha + 1 : 0;
-
-      // ¿Completó una meta genuinamente?
-      if (parsed.metaCompletadaId) {
-        const meta = est.metas.find(m => m.id === parsed.metaCompletadaId && !m.completada);
-        if (meta) {
-          metaCompletada = meta;
-          puntosGanados += meta.pts;
-          setCelebracion({ texto: `¡Meta completada! 🎯 ${meta.texto}`, puntos: meta.pts });
-        }
+      const data=await res.json();
+      const raw=data.content.map(i=>i.text||"").join("").replace(/```json|```/g,"").trim();
+      const p=JSON.parse(raw);
+      const tMsg={id:Date.now()+1,texto:p.respuesta,de:"tutor",hora:new Date()};
+      let pts=0, meta=null;
+      const nRacha=p.correcto!==false&&p.tieneValorEducativo!==false?e.racha+1:0;
+      if(p.metaCompletadaId){
+        const m=e.metas.find(x=>x.id===p.metaCompletadaId&&!x.completada);
+        if(m){meta=m;pts+=m.pts;setCelebra({texto:`¡Meta completada! 🎯 ${m.texto}`,puntos:m.pts});}
       }
-
-      // Bonus por 5 respuestas correctas seguidas (solo si tiene valor educativo)
-      if (parsed.tieneValorEducativo !== false && parsed.correcto !== false && nuevaRacha > 0 && nuevaRacha % 5 === 0 && !metaCompletada) {
-        puntosGanados += 20;
-        setCelebracion({ texto: `🔥 ¡5 respuestas correctas seguidas!`, puntos: 20 });
+      if(p.tieneValorEducativo!==false&&p.correcto!==false&&nRacha>0&&nRacha%5===0&&!meta){
+        pts+=20;setCelebra({texto:`🔥 ¡5 respuestas correctas seguidas!`,puntos:20});
       }
-
-      setEst(prev => ({
-        ...prev,
-        mensajes: [...(prev.mensajes || []), tutorMsg],
-        vocab: [...new Set([...(prev.vocab || []), ...(parsed.vocabularioNuevo || [])])],
-        racha: nuevaRacha,
-        puntos: prev.puntos + puntosGanados,
-        metas: metaCompletada
-          ? prev.metas.map(m => m.id === metaCompletada.id ? { ...m, completada: true } : m)
-          : prev.metas,
+      updEst(prev=>({...prev,
+        mensajes:[...prev.mensajes,tMsg],
+        vocab:[...new Set([...prev.vocab,...(p.vocabularioNuevo||[])])],
+        racha:nRacha,puntos:prev.puntos+pts,
+        metas:meta?prev.metas.map(m=>m.id===meta.id?{...m,completada:true}:m):prev.metas
       }));
-
-      setFeedback(parsed.feedback);
-      setTimeout(() => hablar(parsed.respuesta, tutorMsg.id), 300);
-    } catch {
-      setEst(prev => ({
-        ...prev,
-        mensajes: [...(prev.mensajes || []), { id: Date.now() + 1, texto: "Lo siento, hubo un error. ¡Sigamos! 😊", de: "tutor", hora: new Date() }]
-      }));
-    } finally {
-      setCargando(false);
-    }
+      setFeedback(p.feedback);
+      setTimeout(()=>hablar(p.respuesta,tMsg.id),300);
+    }catch(err){
+      updEst(prev=>({...prev,mensajes:[...prev.mensajes,{id:Date.now()+1,texto:"Lo siento, hubo un error. ¡Sigamos! 😊",de:"tutor",hora:new Date()}]}));
+    }finally{setCargando(false);}
   };
 
-  if (cargandoDatos) {
-    return (
-      <div className="flex h-screen items-center justify-center" style={{ background: "#0f1117" }}>
-        <div className="text-center">
-          <div className="text-4xl mb-3">📚</div>
-          <p className="text-gray-400 text-sm">Cargando tu progreso...</p>
-        </div>
+  if(cargandoDatos) return (
+    <div style={{display:"flex",height:"100vh",alignItems:"center",justifyContent:"center",background:"#0f1117"}}>
+      <div style={{textAlign:"center"}}>
+        <div style={{fontSize:"3rem",marginBottom:"12px"}}>📚</div>
+        <p style={{color:"#9ca3af"}}>Cargando tu progreso...</p>
       </div>
-    );
-  }
+    </div>
+  );
 
-  const est = estadosPorIdioma[idioma];
-  const rango = getRango(est.puntos);
-  const metasOk = est.metas.filter(m => m.completada).length;
-  const logrosOk = est.logros.length;
-  const idiomaActual = IDIOMAS[idioma];
+  const e=est[idioma], rng=getRango(e.puntos), metasOk=e.metas.filter(m=>m.completada).length, logrosOk=e.logros.length, idm=IDIOMAS[idioma];
+  const col=(c,bg,b)=>({background:c?bg:"transparent",border:`1px solid ${c?b:"transparent"}`,color:"#e2e8f0",padding:"6px 8px",borderRadius:"8px",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px",textAlign:"left",width:"100%",fontSize:"0.75rem"});
 
   return (
-    <div className="flex h-screen" style={{ background: "#0f1117", color: "#e2e8f0" }}>
-      {celebracion && <Celebracion texto={celebracion.texto} puntos={celebracion.puntos} onDone={() => setCelebracion(null)} />}
+    <div style={{display:"flex",height:"100vh",background:"#0f1117",color:"#e2e8f0",overflow:"hidden"}}>
+      {celebra&&<Celebracion texto={celebra.texto} puntos={celebra.puntos} onDone={()=>setCelebra(null)}/>}
 
       {/* CHAT */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
         {/* Header */}
-        <div style={{ background: "#1a1d27", borderBottom: "1px solid #2d3148" }} className="p-3">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2 flex-wrap">
-              <BookOpen className="h-5 w-5 text-indigo-400 flex-shrink-0" />
-              <span className="font-bold text-white text-sm hidden sm:inline">Tutor de Idiomas</span>
-              <div className="flex flex-wrap gap-1">
-                {Object.entries(IDIOMAS).map(([k, v]) => {
-                  const r = getRango(estadosPorIdioma[k].puntos);
-                  return (
-                    <button key={k} onClick={() => cambiarIdioma(k)}
-                      style={{ background: idioma === k ? "#4f46e5" : "#252836", border: `1px solid ${idioma === k ? "#6366f1" : "#3d4166"}` }}
-                      className="px-2 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1">
-                      <span>{v.flag}</span>
-                      <span className="hidden sm:inline">{v.nombre}</span>
-                      {estadosPorIdioma[k].puntos > 0 && <span style={{ color: r.color }}>{r.emoji}</span>}
-                    </button>
-                  );
+        <div style={{background:"#1a1d27",borderBottom:"1px solid #2d3148",padding:"10px 14px",flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"8px",flexWrap:"wrap"}}>
+            <div style={{display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}}>
+              <span style={{fontWeight:"bold",color:"white",fontSize:"0.9rem"}}>📚 Tutor de Idiomas</span>
+              <div style={{display:"flex",flexWrap:"wrap",gap:"4px"}}>
+                {Object.entries(IDIOMAS).map(([k,v])=>{
+                  const r=getRango(est[k].puntos);
+                  return <button key={k} onClick={()=>cambiar(k)} style={{background:idioma===k?"#4f46e5":"#252836",border:`1px solid ${idioma===k?"#6366f1":"#3d4166"}`,color:"#e2e8f0",padding:"4px 8px",borderRadius:"8px",fontSize:"0.75rem",cursor:"pointer",display:"flex",alignItems:"center",gap:"4px"}}>
+                    {v.flag} {v.nombre} {est[k].puntos>0&&<span style={{color:r.color}}>{r.emoji}</span>}
+                  </button>;
                 })}
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs flex items-center gap-1" style={{ color: guardando ? "#f59e0b" : "#10b981" }}>
-                <Save className="h-3 w-3" />{guardando ? "Guardando..." : ultimoGuardado ? "Guardado ✓" : ""}
-              </span>
-              {est.racha >= 2 && <span className="text-xs flex items-center gap-1 text-orange-400"><Flame className="h-3 w-3" />{est.racha}</span>}
-              {hayVoz && <span className="text-xs text-green-400 flex items-center gap-1"><Volume2 className="h-3 w-3" />Voz</span>}
-              <button onClick={() => setModoLeccion(!modoLeccion)}
-                style={{ background: modoLeccion ? "#4f46e5" : "#252836", border: "1px solid #3d4166" }}
-                className="px-3 py-1 rounded-lg text-xs font-medium transition-all">
-                {modoLeccion ? "📚 Lección" : "💬 Chat"}
+            <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+              <span style={{fontSize:"0.7rem",color:guardando?"#f59e0b":"#10b981"}}>💾 {guardando?"Guardando...":guardadoOk?"Guardado ✓":""}</span>
+              {e.racha>=2&&<span style={{fontSize:"0.75rem",color:"#fb923c"}}>🔥{e.racha}</span>}
+              {hayVoz&&<span style={{fontSize:"0.75rem",color:"#4ade80"}}>🔊 Voz</span>}
+              <button onClick={()=>setLeccion(!leccion)} style={{background:leccion?"#4f46e5":"#252836",border:"1px solid #3d4166",color:"#e2e8f0",padding:"4px 12px",borderRadius:"8px",fontSize:"0.75rem"}}>
+                {leccion?"📚 Lección":"💬 Chat"}
               </button>
             </div>
           </div>
         </div>
 
         {/* Mensajes */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {(!est.mensajes || est.mensajes.length === 0) && (
-            <div className="text-center py-8">
-              <div className="text-5xl mb-3">{idiomaActual.flag}</div>
-              <h2 className="text-xl font-bold text-white mb-1">¡Aprendamos {idiomaActual.nombre}!</h2>
-              <p className="text-gray-400 text-sm mb-1">Ganás puntos completando metas reales. 🎯</p>
-              <p className="text-gray-500 text-xs mb-4">La IA detecta automáticamente cuándo dominaste un tema.</p>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {(FRASES_INICIO[idioma] || []).map(f => (
-                  <button key={f} onClick={() => enviar(f)}
-                    style={{ background: "#252836", border: "1px solid #3d4166" }}
-                    className="px-3 py-1.5 rounded-full text-sm text-gray-300 hover:border-indigo-500 transition-all">{f}</button>
-                ))}
+        <div style={{flex:1,overflowY:"auto",padding:"16px",display:"flex",flexDirection:"column",gap:"12px"}}>
+          {e.mensajes.length===0&&(
+            <div style={{textAlign:"center",paddingTop:"40px"}}>
+              <div style={{fontSize:"3.5rem",marginBottom:"12px"}}>{idm.flag}</div>
+              <h2 style={{color:"white",fontSize:"1.3rem",fontWeight:"bold",marginBottom:"6px"}}>¡Aprendamos {idm.nombre}!</h2>
+              <p style={{color:"#9ca3af",fontSize:"0.875rem",marginBottom:"4px"}}>Ganás puntos completando metas reales 🎯</p>
+              <p style={{color:"#6b7280",fontSize:"0.8rem",marginBottom:"20px"}}>La IA detecta cuando dominás un tema</p>
+              <div style={{display:"flex",flexWrap:"wrap",gap:"8px",justifyContent:"center"}}>
+                {(FRASES[idioma]||[]).map(f=><button key={f} onClick={()=>enviar(f)} style={{background:"#252836",border:"1px solid #3d4166",color:"#d1d5db",padding:"6px 14px",borderRadius:"999px",fontSize:"0.85rem"}}>{f}</button>)}
               </div>
             </div>
           )}
-
-          {(est.mensajes || []).map(msg => (
-            <div key={msg.id} className={`flex ${msg.de === "usuario" ? "justify-end" : "justify-start"}`}>
-              {msg.de === "tutor" && <div className="w-8 h-8 rounded-full bg-indigo-700 flex items-center justify-center text-sm mr-2 flex-shrink-0 mt-1">{idiomaActual.flag}</div>}
-              <div className="max-w-xs lg:max-w-md px-4 py-3 rounded-2xl"
-                style={{ background: msg.de === "usuario" ? "#4f46e5" : "#1a1d27", border: msg.de === "tutor" ? "1px solid #2d3148" : "none", borderRadius: msg.de === "usuario" ? "1rem 1rem 0.25rem 1rem" : "1rem 1rem 1rem 0.25rem" }}>
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.texto}</p>
-                <div className="flex items-center justify-between mt-1.5 gap-2">
-                  <p className="text-xs" style={{ color: msg.de === "usuario" ? "#a5b4fc" : "#4a5568" }}>
-                    {new Date(msg.hora).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </p>
-                  {msg.de === "tutor" && (
-                    <button onClick={() => hablar(msg.texto, msg.id)} className="flex items-center gap-1 text-xs transition-colors"
-                      style={{ color: hablandoId === msg.id ? "#818cf8" : "#4a5568" }}>
-                      <Volume2 className="h-3 w-3" />{hablandoId === msg.id ? "Detener" : "Escuchar"}
-                    </button>
-                  )}
+          {e.mensajes.map(m=>(
+            <div key={m.id} style={{display:"flex",justifyContent:m.de==="usuario"?"flex-end":"flex-start"}}>
+              {m.de==="tutor"&&<div style={{width:"32px",height:"32px",borderRadius:"50%",background:"#4338ca",display:"flex",alignItems:"center",justifyContent:"center",marginRight:"8px",flexShrink:0,marginTop:"4px"}}>{idm.flag}</div>}
+              <div style={{maxWidth:"420px",padding:"12px 16px",background:m.de==="usuario"?"#4f46e5":"#1a1d27",border:m.de==="tutor"?"1px solid #2d3148":"none",borderRadius:m.de==="usuario"?"1rem 1rem 0.25rem 1rem":"1rem 1rem 1rem 0.25rem"}}>
+                <p style={{fontSize:"0.875rem",lineHeight:"1.5",whiteSpace:"pre-wrap"}}>{m.texto}</p>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:"6px",gap:"8px"}}>
+                  <span style={{fontSize:"0.7rem",color:m.de==="usuario"?"#a5b4fc":"#4a5568"}}>{new Date(m.hora).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>
+                  {m.de==="tutor"&&<button onClick={()=>hablar(m.texto,m.id)} style={{background:"none",border:"none",color:hablaId===m.id?"#818cf8":"#4a5568",fontSize:"0.7rem",cursor:"pointer"}}>
+                    🔊 {hablaId===m.id?"Detener":"Escuchar"}
+                  </button>}
                 </div>
               </div>
             </div>
           ))}
-
-          {cargando && (
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-indigo-700 flex items-center justify-center text-sm">{idiomaActual.flag}</div>
-              <div style={{ background: "#1a1d27", border: "1px solid #2d3148" }} className="px-4 py-3 rounded-2xl">
-                <div className="flex space-x-1">{[0, .15, .3].map((d, i) => <div key={i} className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: `${d}s` }} />)}</div>
+          {cargando&&(
+            <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+              <div style={{width:"32px",height:"32px",borderRadius:"50%",background:"#4338ca",display:"flex",alignItems:"center",justifyContent:"center"}}>{idm.flag}</div>
+              <div style={{background:"#1a1d27",border:"1px solid #2d3148",padding:"12px 16px",borderRadius:"1rem",display:"flex",gap:"4px"}}>
+                {[0,150,300].map((d,i)=><div key={i} style={{width:"8px",height:"8px",background:"#818cf8",borderRadius:"50%",animation:`bounce 1s ${d}ms infinite`}}/>)}
               </div>
             </div>
           )}
-          <div ref={endRef} />
+          <div ref={endRef}/>
         </div>
 
         {/* Input */}
-        <div style={{ background: "#1a1d27", borderTop: "1px solid #2d3148" }} className="p-4">
-          {escuchando && <div className="flex items-center gap-2 mb-2"><div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" /><span className="text-xs text-red-400">Escuchando...</span></div>}
-          {avisoRepetido && (
-            <div className="mb-2 px-3 py-1.5 rounded-lg text-xs text-yellow-300" style={{ background: "#2b2200", border: "1px solid #4a3800" }}>
-              ⚠️ Ya enviaste un mensaje muy similar. ¡Intentá algo diferente para aprender más!
-            </div>
-          )}
-          <div className="flex gap-2">
-            {hayVoz && (
-              <button onClick={toggleMic} style={{ background: escuchando ? "#7c3aed" : "#252836", border: "1px solid #3d4166" }} className="px-3 py-2.5 rounded-xl transition-all flex-shrink-0">
-                {escuchando ? <MicOff className="h-5 w-5 text-white" /> : <Mic className="h-5 w-5 text-gray-300" />}
-              </button>
-            )}
-            <input value={msgActual} onChange={e => setMsgActual(e.target.value)} onKeyDown={e => e.key === "Enter" && !e.shiftKey && enviar()}
-              placeholder={`Escribí en español o en ${idiomaActual.nombre}...`} disabled={cargando}
-              style={{ background: "#252836", border: "1px solid #3d4166", color: "#e2e8f0" }}
-              className="flex-1 px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-500" />
-            <button onClick={() => enviar()} disabled={cargando || !msgActual.trim()}
-              style={{ background: cargando || !msgActual.trim() ? "#252836" : "#4f46e5" }}
-              className="px-4 py-2.5 rounded-xl transition-all disabled:opacity-50 flex-shrink-0"><Send className="h-5 w-5" /></button>
+        <div style={{background:"#1a1d27",borderTop:"1px solid #2d3148",padding:"14px",flexShrink:0}}>
+          {escucha&&<div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"8px"}}><div style={{width:"8px",height:"8px",background:"#ef4444",borderRadius:"50%"}}/><span style={{fontSize:"0.75rem",color:"#f87171"}}>Escuchando...</span></div>}
+          {avisoRep&&<div style={{marginBottom:"8px",padding:"8px 12px",borderRadius:"8px",fontSize:"0.75rem",color:"#fde68a",background:"#2b2200",border:"1px solid #4a3800"}}>⚠️ Ya enviaste algo similar. ¡Intentá algo diferente!</div>}
+          <div style={{display:"flex",gap:"8px"}}>
+            {hayVoz&&<button onClick={toggleMic} style={{background:escucha?"#7c3aed":"#252836",border:"1px solid #3d4166",color:"white",padding:"10px 14px",borderRadius:"12px",fontSize:"1.1rem"}}>
+              {escucha?"🔇":"🎙️"}
+            </button>}
+            <input value={msg} onChange={e=>setMsg(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&enviar()}
+              placeholder={`Escribí en español o en ${idm.nombre}...`} disabled={cargando}
+              style={{flex:1,background:"#252836",border:"1px solid #3d4166",color:"#e2e8f0",padding:"10px 16px",borderRadius:"12px",fontSize:"0.875rem"}}/>
+            <button onClick={()=>enviar()} disabled={cargando||!msg.trim()} style={{background:cargando||!msg.trim()?"#252836":"#4f46e5",border:"none",color:"white",padding:"10px 16px",borderRadius:"12px",fontSize:"1.1rem",opacity:cargando||!msg.trim()?0.5:1}}>➤</button>
           </div>
         </div>
       </div>
 
       {/* SIDEBAR */}
-      <div style={{ background: "#1a1d27", borderLeft: "1px solid #2d3148", width: "300px" }} className="flex flex-col flex-shrink-0 overflow-hidden">
-        {/* XP y rango */}
-        <div style={{ borderBottom: "1px solid #2d3148", background: "linear-gradient(135deg, #1a1d27, #1e1b3a)", flexShrink: 0 }} className="p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xl">{idiomaActual.flag}</span>
-            <span className="text-sm font-bold text-white">{idiomaActual.nombre}</span>
+      <div style={{background:"#1a1d27",borderLeft:"1px solid #2d3148",width:"290px",display:"flex",flexDirection:"column",flexShrink:0,overflow:"hidden"}}>
+        {/* XP */}
+        <div style={{background:"linear-gradient(135deg,#1a1d27,#1e1b3a)",borderBottom:"1px solid #2d3148",padding:"14px",flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"8px"}}>
+            <span style={{fontSize:"1.2rem"}}>{idm.flag}</span>
+            <span style={{fontWeight:"bold",color:"white",fontSize:"0.875rem"}}>{idm.nombre}</span>
           </div>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">{rango.emoji}</span>
-              <span className="font-bold text-sm" style={{ color: rango.color }}>{rango.nombre}</span>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"8px"}}>
+            <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+              <span style={{fontSize:"1.5rem"}}>{rng.emoji}</span>
+              <span style={{fontWeight:"bold",color:rng.color,fontSize:"0.875rem"}}>{rng.nombre}</span>
             </div>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-yellow-400">{est.puntos}</div>
-              <div className="text-xs text-gray-400">XP</div>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontSize:"1.5rem",fontWeight:"bold",color:"#facc15"}}>{e.puntos}</div>
+              <div style={{fontSize:"0.7rem",color:"#9ca3af"}}>XP</div>
             </div>
           </div>
-          <BarraXP puntos={est.puntos} />
-          <div className="grid grid-cols-3 gap-2 mt-3 text-center">
-            {[["💬", est.totalMsg, "Msgs"], ["📚", est.vocab.length, "Palabras"], ["🔥", est.racha, "Racha"]].map(([ico, v, label]) => (
-              <div key={label} style={{ background: "#252836", border: "1px solid #2d3148" }} className="p-1.5 rounded-lg">
-                <div className="text-base">{ico}</div>
-                <div className="text-sm font-bold text-white">{v}</div>
-                <div className="text-xs text-gray-500">{label}</div>
+          <BarraXP puntos={e.puntos}/>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"6px",marginTop:"10px",textAlign:"center"}}>
+            {[["💬",e.totalMsg,"Msgs"],["📚",e.vocab.length,"Palabras"],["🔥",e.racha,"Racha"]].map(([ic,v,lb])=>(
+              <div key={lb} style={{background:"#252836",border:"1px solid #2d3148",padding:"6px",borderRadius:"8px"}}>
+                <div style={{fontSize:"0.9rem"}}>{ic}</div>
+                <div style={{fontWeight:"bold",color:"white",fontSize:"0.875rem"}}>{v}</div>
+                <div style={{fontSize:"0.7rem",color:"#6b7280"}}>{lb}</div>
               </div>
             ))}
           </div>
-          {/* Cómo ganar puntos */}
-          <div className="mt-3 text-xs text-gray-500 space-y-0.5" style={{ borderTop: "1px solid #2d3148", paddingTop: "8px" }}>
-            <p className="text-gray-400 font-semibold mb-1">¿Cómo ganar XP?</p>
+          <div style={{marginTop:"10px",paddingTop:"8px",borderTop:"1px solid #2d3148",fontSize:"0.7rem",color:"#6b7280"}}>
+            <p style={{color:"#9ca3af",fontWeight:"600",marginBottom:"4px"}}>¿Cómo ganar XP?</p>
             <p>🎯 Completar una meta → puntos de esa meta</p>
-            <p>🔥 5 respuestas correctas seguidas → +20 XP</p>
+            <p>🔥 5 respuestas correctas → +20 XP</p>
           </div>
         </div>
 
-        {/* Todos los idiomas colapsable */}
-        <details style={{ borderBottom: "1px solid #2d3148", flexShrink: 0 }}>
-          <summary className="p-3 cursor-pointer flex items-center justify-between select-none text-xs text-gray-400 font-semibold uppercase tracking-wide">
+        {/* Todos los idiomas */}
+        <details style={{borderBottom:"1px solid #2d3148",flexShrink:0}}>
+          <summary style={{padding:"10px 12px",cursor:"pointer",display:"flex",justifyContent:"space-between",fontSize:"0.7rem",color:"#9ca3af",fontWeight:"600",textTransform:"uppercase",letterSpacing:"0.05em"}}>
             Todos tus idiomas <span>▼</span>
           </summary>
-          <div className="px-3 pb-3 space-y-1">
-            {Object.entries(IDIOMAS).map(([k, v]) => {
-              const ep = estadosPorIdioma[k]; const r = getRango(ep.puntos);
-              return (
-                <button key={k} onClick={() => cambiarIdioma(k)}
-                  style={{ background: idioma === k ? "#252860" : "transparent", border: `1px solid ${idioma === k ? "#4f46e5" : "transparent"}` }}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all text-left">
-                  <span className="text-sm">{v.flag}</span>
-                  <span className="text-xs text-gray-300 flex-1">{v.nombre}</span>
-                  <span className="text-xs" style={{ color: r.color }}>{r.emoji} {ep.puntos > 0 ? ep.puntos + " XP" : "—"}</span>
-                </button>
-              );
+          <div style={{padding:"0 10px 10px",display:"flex",flexDirection:"column",gap:"3px"}}>
+            {Object.entries(IDIOMAS).map(([k,v])=>{
+              const r=getRango(est[k].puntos);
+              return <button key={k} onClick={()=>cambiar(k)} style={col(idioma===k,"#252860","#4f46e5")}>
+                <span>{v.flag}</span><span style={{flex:1}}>{v.nombre}</span>
+                <span style={{color:r.color,fontSize:"0.7rem"}}>{r.emoji} {est[k].puntos>0?est[k].puntos+" XP":"—"}</span>
+              </button>;
             })}
           </div>
         </details>
 
         {/* Feedback */}
-        {feedback && (
-          <div style={{ borderBottom: "1px solid #2d3148", flexShrink: 0 }} className="p-3">
-            <h3 className="font-semibold text-white mb-2 flex items-center gap-2 text-sm"><MessageSquare className="h-4 w-4 text-indigo-400" />Feedback</h3>
-            <div className="space-y-1.5 text-xs">
-              {feedback.positivo && <div style={{ background: "#0d2b1a", border: "1px solid #1a4a2e" }} className="p-2 rounded-lg text-green-300">✅ {feedback.positivo}</div>}
-              {feedback.correccion && <div style={{ background: "#2b1a0d", border: "1px solid #4a2e1a" }} className="p-2 rounded-lg text-orange-300">📝 {feedback.correccion}</div>}
-              {feedback.sugerencia && <div style={{ background: "#0d1a2b", border: "1px solid #1a2e4a" }} className="p-2 rounded-lg text-blue-300">💡 {feedback.sugerencia}</div>}
+        {feedback&&(
+          <div style={{borderBottom:"1px solid #2d3148",padding:"12px",flexShrink:0}}>
+            <p style={{fontWeight:"600",color:"white",marginBottom:"8px",fontSize:"0.875rem"}}>💬 Feedback</p>
+            <div style={{display:"flex",flexDirection:"column",gap:"5px",fontSize:"0.75rem"}}>
+              {feedback.positivo&&<div style={{background:"#0d2b1a",border:"1px solid #1a4a2e",padding:"7px",borderRadius:"7px",color:"#86efac"}}>✅ {feedback.positivo}</div>}
+              {feedback.correccion&&<div style={{background:"#2b1a0d",border:"1px solid #4a2e1a",padding:"7px",borderRadius:"7px",color:"#fdba74"}}>📝 {feedback.correccion}</div>}
+              {feedback.sugerencia&&<div style={{background:"#0d1a2b",border:"1px solid #1a2e4a",padding:"7px",borderRadius:"7px",color:"#93c5fd"}}>💡 {feedback.sugerencia}</div>}
             </div>
           </div>
         )}
 
         {/* Tabs */}
-        <div className="flex flex-shrink-0" style={{ borderBottom: "1px solid #2d3148" }}>
-          {[["metas", "🎯", `Metas (${metasOk}/12)`], ["logros", "🏆", `Logros (${logrosOk}/${LOGROS.length})`]].map(([t, ico, label]) => (
-            <button key={t} onClick={() => setTab(t)} className="flex-1 py-2 text-xs font-medium transition-all"
-              style={{ color: tab === t ? "#818cf8" : "#6b7280", borderBottom: tab === t ? "2px solid #6366f1" : "2px solid transparent", background: "transparent" }}>
-              {ico} {label}
+        <div style={{display:"flex",borderBottom:"1px solid #2d3148",flexShrink:0}}>
+          {[["metas","🎯",`Metas (${metasOk}/12)`],["logros","🏆",`Logros (${logrosOk}/${LOGROS.length})`]].map(([t,ic,lb])=>(
+            <button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:"8px",fontSize:"0.75rem",fontWeight:"500",background:"transparent",border:"none",borderBottom:`2px solid ${tab===t?"#6366f1":"transparent"}`,color:tab===t?"#818cf8":"#6b7280",cursor:"pointer"}}>
+              {ic} {lb}
             </button>
           ))}
         </div>
 
-        <div style={{ flex: "1 1 0", minHeight: 0, overflowY: "auto" }} className="p-3 space-y-1.5">
-          {tab === "metas" && est.metas.map(meta => (
-            <div key={meta.id}
-              style={{ background: meta.completada ? "#1a2b1a" : "#252836", border: `1px solid ${meta.completada ? "#2d4a2d" : "#2d3148"}` }}
-              className="w-full p-2.5 rounded-lg flex items-center gap-2">
-              <span className="flex-shrink-0 text-base">{meta.completada ? "✅" : "⬜"}</span>
-              <span className={`text-xs leading-tight flex-1 ${meta.completada ? "line-through text-gray-500" : "text-gray-300"}`}>{meta.texto}</span>
-              <span className="text-xs font-bold text-yellow-400 flex-shrink-0">+{meta.pts}</span>
+        <div style={{flex:"1 1 0",minHeight:0,overflowY:"auto",padding:"10px",display:"flex",flexDirection:"column",gap:"5px"}}>
+          {tab==="metas"&&e.metas.map(m=>(
+            <div key={m.id} style={{background:m.completada?"#1a2b1a":"#252836",border:`1px solid ${m.completada?"#2d4a2d":"#2d3148"}`,padding:"9px",borderRadius:"8px",display:"flex",alignItems:"center",gap:"8px"}}>
+              <span style={{flexShrink:0}}>{m.completada?"✅":"⬜"}</span>
+              <span style={{fontSize:"0.75rem",flex:1,textDecoration:m.completada?"line-through":"none",color:m.completada?"#6b7280":"#d1d5db",lineHeight:"1.3"}}>{m.texto}</span>
+              <span style={{fontSize:"0.75rem",fontWeight:"bold",color:"#facc15",flexShrink:0}}>+{m.pts}</span>
             </div>
           ))}
-          {tab === "logros" && LOGROS.map(logro => {
-            const ok = est.logros.includes(logro.id);
-            return (
-              <div key={logro.id}
-                style={{ background: ok ? "#1a1a2e" : "#252836", border: `1px solid ${ok ? "#4f46e5" : "#2d3148"}`, opacity: ok ? 1 : 0.45 }}
-                className="p-2 rounded-lg flex items-center gap-2">
-                <span className="text-xl flex-shrink-0">{logro.emoji}</span>
-                <div className="min-w-0 flex-1">
-                  <p className={`text-xs font-bold ${ok ? "text-indigo-300" : "text-gray-500"}`}>{logro.nombre}</p>
-                  <p className="text-xs text-gray-500 leading-tight">{logro.desc}</p>
-                </div>
-                {ok && <Star className="h-3 w-3 text-yellow-400 flex-shrink-0" />}
+          {tab==="logros"&&LOGROS.map(l=>{
+            const ok=e.logros.includes(l.id);
+            return <div key={l.id} style={{background:ok?"#1a1a2e":"#252836",border:`1px solid ${ok?"#4f46e5":"#2d3148"}`,padding:"8px",borderRadius:"8px",display:"flex",alignItems:"center",gap:"8px",opacity:ok?1:0.45}}>
+              <span style={{fontSize:"1.2rem",flexShrink:0}}>{l.emoji}</span>
+              <div style={{minWidth:0,flex:1}}>
+                <p style={{fontSize:"0.75rem",fontWeight:"bold",color:ok?"#a5b4fc":"#6b7280",margin:0}}>{l.nombre}</p>
+                <p style={{fontSize:"0.7rem",color:"#6b7280",margin:0,lineHeight:"1.3"}}>{l.desc}</p>
               </div>
-            );
+              {ok&&<span style={{color:"#facc15",flexShrink:0}}>⭐</span>}
+            </div>;
           })}
         </div>
       </div>
     </div>
   );
 }
+
+ReactDOM.render(React.createElement(App), document.getElementById("root"));
+</script>
+</body>
+</html>
