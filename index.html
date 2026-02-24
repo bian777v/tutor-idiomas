@@ -26,8 +26,8 @@
 <script type="text/babel">
 const { useState, useEffect, useRef } = React;
 
-// ⚠️ REEMPLAZÁ ESTO CON TU API KEY DE ANTHROPIC
-const API_KEY = "Marie7";
+// ⚠️ REEMPLAZÁ ESTO CON TU API KEY DE GOOGLE
+const API_KEY = "AIzaSyAns5-Gk92mYcCBp0YWyyd8axFRyBTbiwA";
 
 const IDIOMAS = {
   ingles:    { nombre: "Inglés",    flag: "🇺🇸", lang: "en-US" },
@@ -78,16 +78,16 @@ const RANGOS = [
 ];
 
 const LOGROS = [
-  { id:"primera_meta", emoji:"🎯", nombre:"Primera meta",     desc:"Completaste tu primera meta",        cond:s=>s.metasOk>=1 },
-  { id:"tres_metas",   emoji:"🏅", nombre:"Dedicado",         desc:"Completaste 3 metas",                cond:s=>s.metasOk>=3 },
-  { id:"seis_metas",   emoji:"🏆", nombre:"Imparable",        desc:"Completaste 6 metas",                cond:s=>s.metasOk>=6 },
-  { id:"todas_metas",  emoji:"👑", nombre:"Maestro completo", desc:"Completaste todas las metas",        cond:s=>s.metasOk>=12 },
-  { id:"vocab_10",     emoji:"📖", nombre:"Curioso",          desc:"Aprendiste 10 palabras nuevas",      cond:s=>s.vocab>=10 },
-  { id:"vocab_30",     emoji:"📚", nombre:"Lector voraz",     desc:"Aprendiste 30 palabras nuevas",      cond:s=>s.vocab>=30 },
-  { id:"pts_300",      emoji:"⭐", nombre:"Acumulador",       desc:"Alcanzaste 300 puntos",              cond:s=>s.puntos>=300 },
-  { id:"pts_1000",     emoji:"🌟", nombre:"Mil puntos",       desc:"Alcanzaste 1000 puntos",             cond:s=>s.puntos>=1000 },
-  { id:"racha_5",      emoji:"🔥", nombre:"En llamas",        desc:"5 respuestas correctas seguidas",   cond:s=>s.racha>=5 },
-  { id:"racha_10",     emoji:"💥", nombre:"Imparable",        desc:"10 respuestas correctas seguidas",  cond:s=>s.racha>=10 },
+  { id:"primera_meta", emoji:"🎯", nombre:"Primera meta",     desc:"Completaste tu primera meta",       cond:s=>s.metasOk>=1 },
+  { id:"tres_metas",   emoji:"🏅", nombre:"Dedicado",         desc:"Completaste 3 metas",               cond:s=>s.metasOk>=3 },
+  { id:"seis_metas",   emoji:"🏆", nombre:"Imparable",        desc:"Completaste 6 metas",               cond:s=>s.metasOk>=6 },
+  { id:"todas_metas",  emoji:"👑", nombre:"Maestro completo", desc:"Completaste todas las metas",       cond:s=>s.metasOk>=12 },
+  { id:"vocab_10",     emoji:"📖", nombre:"Curioso",          desc:"Aprendiste 10 palabras nuevas",     cond:s=>s.vocab>=10 },
+  { id:"vocab_30",     emoji:"📚", nombre:"Lector voraz",     desc:"Aprendiste 30 palabras nuevas",     cond:s=>s.vocab>=30 },
+  { id:"pts_300",      emoji:"⭐", nombre:"Acumulador",       desc:"Alcanzaste 300 puntos",             cond:s=>s.puntos>=300 },
+  { id:"pts_1000",     emoji:"🌟", nombre:"Mil puntos",       desc:"Alcanzaste 1000 puntos",            cond:s=>s.puntos>=1000 },
+  { id:"racha_5",      emoji:"🔥", nombre:"En llamas",        desc:"5 respuestas correctas seguidas",  cond:s=>s.racha>=5 },
+  { id:"racha_10",     emoji:"💥", nombre:"Imparable",        desc:"10 respuestas correctas seguidas", cond:s=>s.racha>=10 },
 ];
 
 const getRango = pts => RANGOS.find(r => pts>=r.min && pts<=r.max) || RANGOS[0];
@@ -156,7 +156,6 @@ function App(){
   const recRef=useRef(null);
   const timerRef=useRef(null);
 
-  // Cargar desde localStorage
   useEffect(()=>{
     try{
       const raw=localStorage.getItem("tutor_v3");
@@ -174,7 +173,6 @@ function App(){
     }finally{setCargandoDatos(false);}
   },[]);
 
-  // Guardar en localStorage
   useEffect(()=>{
     if(!est) return;
     if(timerRef.current) clearTimeout(timerRef.current);
@@ -206,7 +204,6 @@ function App(){
 
   const updEst=fn=>setEst(prev=>({...prev,[idioma]:fn(prev[idioma])}));
 
-  // Logros
   useEffect(()=>{
     if(!est) return;
     const e=est[idioma];
@@ -247,9 +244,11 @@ function App(){
     const uMsg={id:Date.now(),texto:txt,de:"usuario",hora:new Date()};
     updEst(prev=>({...prev,mensajes:[...prev.mensajes,uMsg],totalMsg:prev.totalMsg+1}));
     setMsg("");setCargando(true);setAvisoRep(false);
+
     const inf=IDIOMAS[idioma];
     const hist=[...e.mensajes,uMsg].slice(-6).map(m=>({de:m.de,texto:m.texto}));
     const pend=e.metas.filter(m=>!m.completada).map(m=>`ID${m.id}:${m.texto}`).join(", ");
+
     const prompt=`Eres un tutor de ${inf.nombre} amigable para hispanohablantes argentinos.
 Idioma: ${inf.nombre}
 Historial: ${JSON.stringify(hist)}
@@ -257,7 +256,7 @@ Mensaje: "${txt}"
 Modo lección: ${leccion}
 Metas pendientes: ${pend}
 
-Respondé SOLO con JSON válido:
+Respondé SOLO con JSON válido sin texto extra:
 {
   "respuesta": "Respuesta en ${inf.nombre}${leccion?" con foco didáctico":" conversacional"}. Si el usuario escribió en español, explicá en español también.",
   "feedback": {"positivo":"Elogio corto en español o vacío","correccion":"Corrección gentil en español o vacío","sugerencia":"Sugerencia práctica en español"},
@@ -267,17 +266,22 @@ Respondé SOLO con JSON válido:
   "metaCompletadaId": null
 }
 REGLAS:
-- metaCompletadaId: ID de la meta si el usuario usó correctamente ese tema en 2+ intercambios. No hace falta perfección, alcanza con lo básico. Si no, null.
-- tieneValorEducativo: false solo si es spam claro o sin sentido.
+- metaCompletadaId: ID de la meta si el usuario usó correctamente ese tema en 2+ intercambios. No hace falta perfección. Si no, null.
+- tieneValorEducativo: false solo si es spam claro.
 - correcto: false solo si hay errores graves.`;
+
     try{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{
+      // Usar Google Gemini API
+      const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,{
         method:"POST",
-        headers:{"Content-Type":"application/json","x-api-key":API_KEY,"anthropic-version":"2023-06-01"},
-        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:prompt}]})
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          contents:[{parts:[{text:prompt}]}],
+          generationConfig:{temperature:0.7,maxOutputTokens:1000}
+        })
       });
       const data=await res.json();
-      const raw=data.content.map(i=>i.text||"").join("").replace(/```json|```/g,"").trim();
+      const raw=data.candidates[0].content.parts[0].text.replace(/```json|```/g,"").trim();
       const p=JSON.parse(raw);
       const tMsg={id:Date.now()+1,texto:p.respuesta,de:"tutor",hora:new Date()};
       let pts=0, meta=null;
@@ -320,7 +324,6 @@ REGLAS:
 
       {/* CHAT */}
       <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
-        {/* Header */}
         <div style={{background:"#1a1d27",borderBottom:"1px solid #2d3148",padding:"10px 14px",flexShrink:0}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"8px",flexWrap:"wrap"}}>
             <div style={{display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}}>
@@ -345,7 +348,6 @@ REGLAS:
           </div>
         </div>
 
-        {/* Mensajes */}
         <div style={{flex:1,overflowY:"auto",padding:"16px",display:"flex",flexDirection:"column",gap:"12px"}}>
           {e.mensajes.length===0&&(
             <div style={{textAlign:"center",paddingTop:"40px"}}>
@@ -383,7 +385,6 @@ REGLAS:
           <div ref={endRef}/>
         </div>
 
-        {/* Input */}
         <div style={{background:"#1a1d27",borderTop:"1px solid #2d3148",padding:"14px",flexShrink:0}}>
           {escucha&&<div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"8px"}}><div style={{width:"8px",height:"8px",background:"#ef4444",borderRadius:"50%"}}/><span style={{fontSize:"0.75rem",color:"#f87171"}}>Escuchando...</span></div>}
           {avisoRep&&<div style={{marginBottom:"8px",padding:"8px 12px",borderRadius:"8px",fontSize:"0.75rem",color:"#fde68a",background:"#2b2200",border:"1px solid #4a3800"}}>⚠️ Ya enviaste algo similar. ¡Intentá algo diferente!</div>}
@@ -401,7 +402,6 @@ REGLAS:
 
       {/* SIDEBAR */}
       <div style={{background:"#1a1d27",borderLeft:"1px solid #2d3148",width:"290px",display:"flex",flexDirection:"column",flexShrink:0,overflow:"hidden"}}>
-        {/* XP */}
         <div style={{background:"linear-gradient(135deg,#1a1d27,#1e1b3a)",borderBottom:"1px solid #2d3148",padding:"14px",flexShrink:0}}>
           <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"8px"}}>
             <span style={{fontSize:"1.2rem"}}>{idm.flag}</span>
@@ -434,7 +434,6 @@ REGLAS:
           </div>
         </div>
 
-        {/* Todos los idiomas */}
         <details style={{borderBottom:"1px solid #2d3148",flexShrink:0}}>
           <summary style={{padding:"10px 12px",cursor:"pointer",display:"flex",justifyContent:"space-between",fontSize:"0.7rem",color:"#9ca3af",fontWeight:"600",textTransform:"uppercase",letterSpacing:"0.05em"}}>
             Todos tus idiomas <span>▼</span>
@@ -450,7 +449,6 @@ REGLAS:
           </div>
         </details>
 
-        {/* Feedback */}
         {feedback&&(
           <div style={{borderBottom:"1px solid #2d3148",padding:"12px",flexShrink:0}}>
             <p style={{fontWeight:"600",color:"white",marginBottom:"8px",fontSize:"0.875rem"}}>💬 Feedback</p>
@@ -462,7 +460,6 @@ REGLAS:
           </div>
         )}
 
-        {/* Tabs */}
         <div style={{display:"flex",borderBottom:"1px solid #2d3148",flexShrink:0}}>
           {[["metas","🎯",`Metas (${metasOk}/12)`],["logros","🏆",`Logros (${logrosOk}/${LOGROS.length})`]].map(([t,ic,lb])=>(
             <button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:"8px",fontSize:"0.75rem",fontWeight:"500",background:"transparent",border:"none",borderBottom:`2px solid ${tab===t?"#6366f1":"transparent"}`,color:tab===t?"#818cf8":"#6b7280",cursor:"pointer"}}>
